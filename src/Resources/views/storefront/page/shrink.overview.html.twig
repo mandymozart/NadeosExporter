@@ -1,0 +1,66 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a><br /><br />
+
+    <style>
+        td, th { padding-left: 10px; padding-right: 10px; }
+    </style>
+
+    <h2>Revlevante Produkte <small style="font-size: 70%">(Produktnummer endet mit "-TE" &amp; "-AU")</small></h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Produktklasse</th>
+                <th>Name</th>
+                <th>Menge</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for article in articlesRelevant %}
+                <tr>
+                    <td>{{ article.productNumberSuffix }}</td>
+                    <td>{{ article.name }}</td>
+                    <td style="text-align: right">{{ article.amount }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">Keine Artikel gefunden.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br />
+    <h2>Alle Produkte <small>(nur zur Kontrolle)</small></h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Artikelnummer</th>
+                <th>Name</th>
+                <th>Menge</th>
+                <th>Produkt Relevant?</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for article in articlesOverview %}
+                <tr>
+                    <td>{{ article.productNumber }}</td>
+                    <td>{{ article.name }}</td>
+                    <td style="text-align: right">{{ article.amount }}</td>
+                    <td style="text-align: center">{{ article.isRelevant == 0 ? 'Nein' : 'Ja' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">Keine Artikel gefunden.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

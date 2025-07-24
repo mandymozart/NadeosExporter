@@ -1,0 +1,67 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Monat</th>
+                <th>Monatsübersicht</th>
+                <th>Bestellungen (Rechnungen, Stornorechnungen, Gutschriften)</th>
+                <th>Nur Rechnungen</th>
+                <th>Nur Gutschriften</th>
+                <th>Nur Stornos</th>
+                <th>Kunden</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in 0..6 %}
+                {% set currentDate = date|date_modify("-#{i} month") %}
+                <tr>
+                    <td>{{ currentDate|date('Y-m') }}</td>
+                    <td>
+                        <a href="{{ path('frontend.bmd-export.datas', { year: currentDate|date('Y'), month: currentDate|date('m') }) }}">
+                            Übersicht | 
+                            <a href="{{ path('frontend.bmd-export.datas-csv', { year: currentDate|date('Y'), month: currentDate|date('m') }) }}">
+                                csv
+                            </a>
+                        </a>
+                    </td>
+                    <td>
+                        {#
+                            <a href="{{ path('frontend.bmd-export.orders', { token: token, year: currentDate|date('Y'), month: currentDate|date('m') }) }}">
+                        #}
+                        <a href="{{ path('frontend.bmd-export.orders', { year: currentDate|date('Y'), month: currentDate|date('m') }) }}">
+                            Bestellungen
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ path('frontend.bmd-export.orders', { year: currentDate|date('Y'), month: currentDate|date('m'), type: 'invoices' }) }}">
+                            Rechnungen
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ path('frontend.bmd-export.orders', { year: currentDate|date('Y'), month: currentDate|date('m'), type: 'credits' }) }}">
+                            Gutschriften
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ path('frontend.bmd-export.orders', { year: currentDate|date('Y'), month: currentDate|date('m'), type: 'cancellations' }) }}">
+                            Stornos
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ path('frontend.bmd-export.customers', { year: currentDate|date('Y'), month: currentDate|date('m') }) }}">
+                            Kunden
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

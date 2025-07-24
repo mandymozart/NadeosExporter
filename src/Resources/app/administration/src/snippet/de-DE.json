@@ -1,0 +1,8 @@
+{
+    "swag-example": {
+        "general": {
+            "mainMenuItemGeneral": "Nadeos Exporter",
+            "descriptionTextModule": "Manage this custom module here"
+        }
+    }
+}

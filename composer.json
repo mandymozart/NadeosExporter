@@ -1,0 +1,33 @@
+{
+    "name": "nadeos-data/nadeos-exporter",
+    "description": "nadeos-data/nadeos-exporter",
+    "type": "shopware-platform-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "require": {
+        "shopware/core": "~6.6.0",
+        "mpdf/mpdf": "^8.2"
+    },
+    "extra": {
+        "shopware-plugin-class": "NadeosData\\NadeosExporter",
+        "label": {
+            "de-DE": "Nadeos Exporter",
+            "en-GB": "Nadeos Exporter"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "NadeosData\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "NadeosData\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
+        }
+    }
+}

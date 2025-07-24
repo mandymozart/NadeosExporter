@@ -1,0 +1,39 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a><br /><br />
+
+    <a href="{{ path('frontend.shrink.list-overview', { token: token }) }}">Schwundliste Übersicht</a><br />
+
+    <table>
+        <thead>
+            <tr>
+                <th>Jahr</th>
+                <th>Monat</th>
+                <th>Artikelnummer</th>
+                <th>Name</th>
+                <th>Menge</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for article in articles %}
+                <tr>
+                    <td style="text-align: center;">{{ article.year }}</td>
+                    <td style="text-align: center;">{{ article.month }}</td>
+                    <td>{{ article.product_number }}</td>
+                    <td>{{ article.label }}</td>
+                    <td style="text-align: right;">{{ article.amount }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">Keine Artikel gefunden.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

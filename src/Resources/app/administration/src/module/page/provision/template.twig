@@ -1,0 +1,33 @@
+{% block sw_customer_detail %}
+<sw-page class="test">
+    <template #search-bar>
+        <sw-search-bar>
+        </sw-search-bar>
+    </template>
+
+    <template #smart-bar-header>
+        <h2>Provision</h2>
+    </template>
+
+    <template #smart-bar-actions>
+        <sw-button variant="primary">
+            Action
+        </sw-button>
+    </template>
+
+    <template #side-content>
+        <sw-card-view>
+            <sw-card>
+                Lorem Ipsum
+            </sw-card>
+        </sw-card-view>
+    </template>
+
+    <template #content>
+        <sw-card-view>
+            <sw-card title="Card01" large></sw-card>
+            <sw-card title="Card02" large></sw-card>
+        </sw-card-view>
+    </template>
+</sw-page>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>&nbsp;</th>
+                <th>Bestell Datum</th>
+                <th>Bestell Nr.</th>
+                <th>Dokument Datum</th>
+                <th>Dokument Nr.</th>
+                <th>Dokument Art</th>
+                <th>Dokument Ref. Datum</th>
+                <th>Dokument Ref. Nr.</th>
+                <th>Dokument Ref. Art</th>
+                <th>Kunden Nr.</th>
+                <th>Kunde</th>
+                <th>Betrag</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in datas %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ data['order.date'] }}</td>
+                    <td>{{ data['order.number'] }}</td>
+                    <td>{{ data['document.date'] }}</td>
+                    <td>{{ data['document.number'] }}</td>
+                    <td>{{ data['document.name'] }}</td>
+                    <td>{{ data['referencedDocument.date'] }}</td>
+                    <td>{{ data['referencedDocument.number'] }}</td>
+                    <td>{{ data['referencedDocument.name'] }}</td>
+                    <td>{{ data['konto'] }}</td>
+                    <td>{{ data['text'] }}</td>
+                    <td>{{ data['betrag'] }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

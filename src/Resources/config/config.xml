@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>Nadeos Exporter Settings</title>
+
+        <component name="sw-entity-multi-id-select">
+            <name>euCountries</name>
+            <entity>country</entity>
+            <label>Choose EU Countries</label>
+        </component>
+    </card>
+</config>

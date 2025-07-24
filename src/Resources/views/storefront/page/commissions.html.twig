@@ -1,0 +1,61 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a>
+
+    <p>
+        <a href="{{
+            path(
+                'frontend.nadeos.commissions-mail', {
+                    year: collection|first.orderYear,
+                    month: collection|first.orderMonth
+                }
+            )
+        }}">E-Mail senden</a>
+    </p>
+
+    <table style="width: 100%">
+        <thead>
+            <tr>
+                <th>Gruppe</th>
+                <th>Jahr</th>
+                <th>Monat</th>
+                <th>Vorname</th>
+                <th>Nachname</th>
+                <th>Provision %</th>
+                <th>Auszahlungsart</td>
+                <th style="text-align: right">Umsatz Netto</th>
+                <th style="text-align: right">Provision Netto</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for commission in collection %}
+                <tr>
+                    <td>{{ commission.groupName }}</td>
+                    <td>{{ commission.orderYear }}</td>
+                    <td>{{ commission.orderMonth }}</td>
+                    <td>{{ commission.firstname }}</td>
+                    <td>{{ commission.lastname }}</td>
+                    <td>{{ commission.commissionPercentage }}</td>
+                    <td>{{ commission.getCommissionTypeName }}</td>
+                    <td style="text-align: right">{{ commission.orderAmountNetTotal |format_currency('EUR') }}</td>
+                    <td style="text-align: right">{{ commission.commissionNetTotal  |format_currency('EUR')}}</td>
+                    <td>
+                        <a href="{{ commission.urlPdf }}" target="_blank">PDF</a>&nbsp;|&nbsp;
+                        <a href="{{ path('frontend.nadeos.commssions-overview', { year: commission.orderYear, month: commission.orderMonth, group: commission.groupName }) }}" target="_blank">Übersicht</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">Keine Provisonen gefunden.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

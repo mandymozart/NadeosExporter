@@ -1,0 +1,60 @@
+{% sw_extends '@Storefront/storefront/base.html.twig' %}
+
+{% block base_content %}
+    <h1>{{ title }}</h1>
+
+    <a href="{{ path('frontend.bmd-export.index',   { token: token }) }}">BMD Export</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
+    <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a>
+
+    <dl>
+        <dt>Gruppe</dt>
+        <dd>{{ datas.groupName }}</dd>
+
+        <dt>Jahr/Monat</dt>
+        <dd>{{ datas.orderYear }} / {{ datas.orderMonth }}</dd>
+
+        <dt>Name</dt>
+        <dd>{{ datas.firstname }} {{ datas.lastname }}</dd>
+
+        <dt>Provision</dt>
+        <dd>{{ datas.commissionPercentage }} %</dd>
+
+        <dt>Auszahlungsart</dt>
+        <dd>{{ datas.getCommissionTypeName }}</dd>
+    </dl>
+
+
+    <table style="width: 100%">
+        <thead>
+            <tr>
+                <th>Bestell Nr.</th>
+                <th>Bestell Datum</th>
+                <th>Kunde</th>
+                <th style="text-align: right">Umsatz Netto</th>
+                <th style="text-align: right">Umsatz Brutto</th>
+                <th style="text-align: right">Provision Netto</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for order in orders %}
+                <tr>
+                    <td>{{ order.orderNumber }}</td>
+                    <td>{{ order.orderDateTime|date('d.m.Y H:i:s') }}</td>
+                    <td>{{ [order.getOrderCustomer().getFirstname(), order.getOrderCustomer().getLastname(), order.getOrderCustomer().getCompany()]|join(' ') }}</td>
+                    <td style="text-align: right">{{ order.amountNet|number_format(2, ',', '') }}</td>
+                    <td style="text-align: right">{{ order.amountTotal|number_format(2, ',', '') }}</td>
+                    <td style="text-align: right">{{ (order.amountNet * (datas.commissionPercentage / 100)) | round(2) | format_currency('EUR') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align: right; font-weight: bold;">Summe</td>
+                <td style="text-align: right; font-weight: bold;">{{ datas.commissionNetTotal  |format_currency('EUR')}}</td>
+            </tr>
+        </tfoot>
+    </table>
+{% endblock %}
