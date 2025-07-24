@@ -52,7 +52,7 @@ class BmdExportController extends StorefrontController
         $date = $this->getDateFromRequests($request);
 
         return $this->renderStorefront('@NadeosExporter/storefront/page/bmd.html.twig', [
-            'title' => 'BMD Export',
+            'title' => 'BMD Export V2',
             'date'  => $date,
             'token' => $this->getToken(),
         ]);
