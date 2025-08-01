@@ -104,7 +104,6 @@ class TopRevenueService
                 c.email,
                 c.first_name,
                 c.last_name,
-                c.phone,
                 c.company,
                 ca.phone_number
             FROM customer c
