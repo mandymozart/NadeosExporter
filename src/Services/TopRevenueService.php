@@ -72,30 +72,9 @@ class TopRevenueService
 
     private function getCustomerRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit): array
     {
-        // Debug: List all available order states
-        $statesSql = "
-            SELECT DISTINCT sms.technical_name, sms.name, COUNT(*) as order_count
-            FROM `order` o
-            LEFT JOIN state_machine_state sms ON o.state_id = sms.id
-            WHERE o.order_date_time >= :dateFrom 
-                AND o.order_date_time <= :dateTo
-                AND o.version_id = :versionId
-            GROUP BY sms.technical_name, sms.name
-            ORDER BY order_count DESC
-        ";
-        
-        $params = [
-            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'versionId' => hex2bin(Defaults::LIVE_VERSION)
-        ];
-        
-        $states = $this->databaseConnection->fetchAllAssociative($statesSql, $params);
-        $this->logger->error('Available Order States', ['states' => $states]);
-        
         // Use a subquery approach to ensure each order is counted only once per customer
         // This avoids issues with multiple order_customer records per order
-        // Relaxed filtering - only exclude clearly cancelled/refunded states
+        // Filter based on Shopware transaction states - only include paid/authorized orders
         $sql = "
             SELECT 
                 customer_orders.customer_id,
@@ -107,19 +86,24 @@ class TopRevenueService
                     o.amount_net
                 FROM `order` o
                 INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
-                LEFT JOIN state_machine_state sms ON o.state_id = sms.id
+                INNER JOIN order_transaction ot ON o.id = ot.order_id AND ot.version_id = o.version_id
+                LEFT JOIN state_machine_state sms ON ot.state_id = sms.id
                 WHERE o.order_date_time >= :dateFrom 
                     AND o.order_date_time <= :dateTo
                     AND o.version_id = :versionId
-                    AND sms.technical_name IN ('completed', 'shipped', 'delivered', 'paid')
-                    AND sms.technical_name NOT IN ('cancelled', 'refunded')
+                    AND (sms.technical_name IS NULL OR sms.technical_name IN ('paid', 'paid_partially', 'authorized'))
             ) customer_orders
             GROUP BY customer_orders.customer_id
             ORDER BY total_revenue DESC
             LIMIT :limit
         ";
 
-        $params['limit'] = $limit;
+        $params = [
+            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'versionId' => hex2bin(Defaults::LIVE_VERSION),
+            'limit' => $limit
+        ];
 
         $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT
