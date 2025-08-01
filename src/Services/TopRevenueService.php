@@ -59,7 +59,7 @@ class TopRevenueService
                     contactPerson: $customerDetails['first_name'] . ' ' . $customerDetails['last_name'],
                     phoneNumber: $customerDetails['phone_number'] ?? '',
                     email: $customerDetails['email'] ?? '',
-                    customerId: $data['customer_id'],
+                    customerId: $this->sanitizeUtf8($data['customer_id']),
                     customerNumber: $customerDetails['customer_number'] ?? ''
                 );
                 
