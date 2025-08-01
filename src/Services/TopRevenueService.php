@@ -72,16 +72,24 @@ class TopRevenueService
 
     private function getCustomerRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit): array
     {
+        // Use a subquery approach to ensure each order is counted only once per customer
+        // This avoids issues with multiple order_customer records per order
         $sql = "
             SELECT 
-                oc.customer_id,
-                SUM(o.amount_total) as total_revenue
-            FROM `order` o
-            INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
-            WHERE o.order_date_time >= :dateFrom 
-                AND o.order_date_time <= :dateTo
-                AND o.version_id = :versionId
-            GROUP BY oc.customer_id
+                customer_orders.customer_id,
+                SUM(customer_orders.amount_total) as total_revenue
+            FROM (
+                SELECT DISTINCT
+                    oc.customer_id,
+                    o.id as order_id,
+                    o.amount_total
+                FROM `order` o
+                INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
+                WHERE o.order_date_time >= :dateFrom 
+                    AND o.order_date_time <= :dateTo
+                    AND o.version_id = :versionId
+            ) customer_orders
+            GROUP BY customer_orders.customer_id
             ORDER BY total_revenue DESC
             LIMIT :limit
         ";
@@ -93,14 +101,10 @@ class TopRevenueService
             'limit' => $limit
         ];
 
-
-
         $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT
         ]);
 
-
-        
         return $result;
     }
 
