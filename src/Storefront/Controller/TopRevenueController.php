@@ -82,23 +82,36 @@ class TopRevenueController extends StorefrontController
 
     private function generatePdfResponse(TopRevenueCollection $topRevenueData, DateTime $dateFrom, DateTime $dateTo): Response
     {
-        $html = $this->generateHtmlContent($topRevenueData, $dateFrom, $dateTo);
-        
         // Initialize mPDF
-        $mpdf = new \Mpdf\Mpdf([
-            'mode' => 'utf-8',
-            'format' => 'A4',
-            'orientation' => 'L', // Landscape for better table display
-            'margin_left' => 10,
-            'margin_right' => 10,
-            'margin_top' => 16,
-            'margin_bottom' => 16,
-            'margin_header' => 9,
-            'margin_footer' => 9
-        ]);
+        $pdf = new \Mpdf\Mpdf();
         
-        // Write HTML content to PDF
-        $mpdf->WriteHTML($html);
+        // Load the PDF template (same as CommissionPdfGenerationService)
+        $pagecount = $pdf->SetSourceFile(dirname(__DIR__, 2) . '/templates/template.pdf');
+        $pdf->UseTemplate($pdf->ImportPage($pagecount));
+        
+        // Set margins and font
+        $pdf->SetLeftMargin(20);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetDrawColor(140, 190, 34);
+        
+        // Add title and header information
+        $pdf->Cell(190, 40, '', 0, 1); // Skip header area
+        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->Cell(190, 10, 'Top Revenue Report', 0, 1, 'C');
+        
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(190, 5, 'Period: ' . $dateFrom->format('d.m.Y') . ' - ' . $dateTo->format('d.m.Y'), 0, 1, 'C');
+        $pdf->Cell(190, 5, 'Generated: ' . (new DateTime())->format('d.m.Y H:i:s'), 0, 1, 'C');
+        $pdf->Cell(190, 10, '', 0, 1); // Space
+        
+        // Create table using HTML (more flexible for complex tables)
+        $tableHtml = $this->generateTableHtml($topRevenueData);
+        $pdf->WriteHTML($tableHtml);
+        
+        // Add total revenue at the bottom
+        $pdf->Ln(10);
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(190, 8, 'Total Revenue: ' . number_format($topRevenueData->getTotalRevenue(), 2, ',', '.') . ' €', 0, 1, 'C');
         
         // Generate filename
         $filename = sprintf(
@@ -109,7 +122,7 @@ class TopRevenueController extends StorefrontController
         
         // Return PDF response
         return new Response(
-            $mpdf->Output('', 'S'), // 'S' returns PDF as string
+            $pdf->Output('', 'S'), // 'S' returns PDF as string
             200,
             [
                 'Content-Type' => 'application/pdf',
@@ -118,41 +131,26 @@ class TopRevenueController extends StorefrontController
         );
     }
 
-    private function generateHtmlContent(TopRevenueCollection $topRevenueData, DateTime $dateFrom, DateTime $dateTo): string
+    private function generateTableHtml(TopRevenueCollection $topRevenueData): string
     {
-        $html = '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Top Revenue Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .header { margin-bottom: 20px; }
-        .revenue { text-align: right; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Top Revenue Report</h1>
-        <p>Period: ' . $dateFrom->format('d.m.Y') . ' - ' . $dateTo->format('d.m.Y') . '</p>
-        <p>Generated: ' . (new DateTime())->format('d.m.Y H:i:s') . '</p>
-    </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Rank/Position</th>
-                <th>Revenue</th>
-                <th>Company</th>
-                <th>Contact Person</th>
-                <th>Phone Number</th>
-                <th>Email</th>
-            </tr>
-        </thead>
-        <tbody>';
+        $html = '<style>
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }
+            th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .revenue { text-align: right; }
+        </style>
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Revenue</th>
+                    <th>Company</th>
+                    <th>Contact Person</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>';
 
         foreach ($topRevenueData->getItems() as $item) {
             $html .= '<tr>
@@ -166,13 +164,7 @@ class TopRevenueController extends StorefrontController
         }
 
         $html .= '</tbody>
-    </table>
-    
-    <div style="margin-top: 20px;">
-        <strong>Total Revenue: ' . number_format($topRevenueData->getTotalRevenue(), 2, ',', '.') . ' €</strong>
-    </div>
-</body>
-</html>';
+        </table>';
 
         return $html;
     }
