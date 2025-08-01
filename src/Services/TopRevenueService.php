@@ -99,8 +99,14 @@ class TopRevenueService
                     o.id as order_id,
                     o.amount_net,
                     LEFT(cgt.name, 2) AS group_name,
-                    TRIM(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_vorname'), '\"') AS group_firstname,
-                    TRIM(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_nachname'), '\"') AS group_lastname
+                    COALESCE(
+                        JSON_UNQUOTE(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_vorname')),
+                        ''
+                    ) AS group_firstname,
+                    COALESCE(
+                        JSON_UNQUOTE(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_nachname')),
+                        ''
+                    ) AS group_lastname
                 FROM `order` o
                 INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
                 INNER JOIN order_transaction ot ON o.id = ot.order_id AND ot.version_id = o.version_id
