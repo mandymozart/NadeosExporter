@@ -1,0 +1,9 @@
+services:
+  NadeosData\Services\TopRevenueService:
+    arguments:
+      $databaseConnection: '@Doctrine\DBAL\Connection'
+      $orderRepository: '@order.repository'
+      $customerRepository: '@customer.repository'
+      $logger: '@monolog.logger.nadeos_exporter'
+    tags:
+      - { name: 'monolog.logger', channel: 'nadeos_exporter' }

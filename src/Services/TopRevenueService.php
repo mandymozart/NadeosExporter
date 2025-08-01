@@ -27,6 +27,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Search\Aggregation\Metric\{
 };
 use Shopware\Core\Framework\Context;
 use DateTimeZone;
+use Psr\Log\LoggerInterface;
 
 class TopRevenueService
 {
@@ -35,7 +36,8 @@ class TopRevenueService
     public function __construct(
         private readonly Connection $databaseConnection,
         private readonly EntityRepository $orderRepository,
-        private readonly EntityRepository $customerRepository
+        private readonly EntityRepository $customerRepository,
+        private readonly LoggerInterface $logger
     ) {}
 
     public function getTopRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit = 50): TopRevenueCollection
@@ -92,19 +94,23 @@ class TopRevenueService
             'limit' => $limit
         ];
 
-        // Debug logging
-        error_log("TopRevenue Debug - SQL: " . $sql);
-        error_log("TopRevenue Debug - Params: " . json_encode([
-            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'limit' => $limit
-        ]));
+        // Debug logging using proper Shopware Monolog
+        $this->logger->info('TopRevenue SQL Query Debug', [
+            'sql' => $sql,
+            'params' => [
+                'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+                'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+                'limit' => $limit
+            ]
+        ]);
 
         $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT
         ]);
 
-        error_log("TopRevenue Debug - Result count: " . count($result));
+        $this->logger->info('TopRevenue Query Results', [
+            'result_count' => count($result)
+        ]);
         
         return $result;
     }
@@ -149,11 +155,30 @@ class TopRevenueService
             return '';
         }
         
-        // Remove or replace invalid UTF-8 characters
+        // More aggressive UTF-8 cleaning
+        $value = (string) $value;
+        
+        // First, try to detect encoding and convert to UTF-8
+        $encoding = mb_detect_encoding($value, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $value = mb_convert_encoding($value, 'UTF-8', $encoding);
+        }
+        
+        // Clean invalid UTF-8 sequences
         $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
         
-        // Remove any remaining non-printable characters except common whitespace
-        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
+        // Remove/replace problematic characters
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/', '', $value);
+        
+        // Replace common problematic characters
+        $value = str_replace(['\\', '"', "\r", "\n", "\t"], ['', '', ' ', ' ', ' '], $value);
+        
+        // Final JSON-safe check
+        $testJson = json_encode($value);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // If still problematic, use only ASCII
+            $value = iconv('UTF-8', 'ASCII//IGNORE', $value);
+        }
         
         return trim($value);
     }

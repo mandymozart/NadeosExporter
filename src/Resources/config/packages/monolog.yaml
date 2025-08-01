@@ -1,0 +1,9 @@
+monolog:
+  channels: ['nadeos_exporter']
+
+  handlers:
+    nadeosExporterLogHandler:
+        type: rotating_file
+        path: "%kernel.logs_dir%/nadeos_exporter_%kernel.environment%.log"
+        level: info
+        channels: ["nadeos_exporter"]
