@@ -109,12 +109,10 @@ class TopRevenueService
             FROM customer c
             LEFT JOIN customer_address ca ON c.default_billing_address_id = ca.id
             WHERE c.id = :customerId
-                AND c.version_id = :versionId
         ";
 
         $result = $this->databaseConnection->fetchAssociative($sql, [
-            'customerId' => hex2bin($customerId),
-            'versionId' => hex2bin(Defaults::LIVE_VERSION)
+            'customerId' => hex2bin($customerId)
         ]);
 
         if (!$result) {
