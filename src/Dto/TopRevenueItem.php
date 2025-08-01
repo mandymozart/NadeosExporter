@@ -11,7 +11,6 @@ final class TopRevenueItem
         public readonly string $contactPerson,
         public readonly string $phoneNumber,
         public readonly string $email,
-        public readonly string $customerId,
         public readonly string $customerNumber = ''
     ) {}
 
@@ -24,7 +23,6 @@ final class TopRevenueItem
             'contactPerson' => $this->contactPerson,
             'phoneNumber' => $this->phoneNumber,
             'email' => $this->email,
-            'customerId' => $this->customerId,
             'customerNumber' => $this->customerNumber
         ];
     }
