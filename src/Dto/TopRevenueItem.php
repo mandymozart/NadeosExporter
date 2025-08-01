@@ -11,7 +11,10 @@ final class TopRevenueItem
         public readonly string $contactPerson,
         public readonly string $phoneNumber,
         public readonly string $email,
-        public readonly string $customerNumber = ''
+        public readonly string $customerNumber = '',
+        public readonly string $groupName = '',
+        public readonly string $groupFirstname = '',
+        public readonly string $groupLastname = ''
     ) {}
 
     public function toArray(): array
@@ -23,7 +26,10 @@ final class TopRevenueItem
             'contactPerson' => $this->contactPerson,
             'phoneNumber' => $this->phoneNumber,
             'email' => $this->email,
-            'customerNumber' => $this->customerNumber
+            'customerNumber' => $this->customerNumber,
+            'groupName' => $this->groupName,
+            'groupFirstname' => $this->groupFirstname,
+            'groupLastname' => $this->groupLastname
         ];
     }
 

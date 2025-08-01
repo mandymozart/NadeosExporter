@@ -59,7 +59,10 @@ class TopRevenueService
                     contactPerson: $customerDetails['first_name'] . ' ' . $customerDetails['last_name'],
                     phoneNumber: $customerDetails['phone_number'] ?? '',
                     email: $customerDetails['email'] ?? '',
-                    customerNumber: $customerDetails['customer_number'] ?? ''
+                    customerNumber: $customerDetails['customer_number'] ?? '',
+                    groupName: $data['group_name'] ?? '',
+                    groupFirstname: $data['group_firstname'] ?? '',
+                    groupLastname: $data['group_lastname'] ?? ''
                 );
                 
                 $collection->add($item);
@@ -86,12 +89,18 @@ class TopRevenueService
         $sql = "
             SELECT 
                 customer_orders.customer_id,
-                SUM(customer_orders.amount_net) as total_revenue
+                SUM(customer_orders.amount_net) as total_revenue,
+                customer_orders.group_name,
+                customer_orders.group_firstname,
+                customer_orders.group_lastname
             FROM (
                 SELECT DISTINCT
                     oc.customer_id,
                     o.id as order_id,
-                    o.amount_net
+                    o.amount_net,
+                    LEFT(cgt.name, 2) AS group_name,
+                    TRIM(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_vorname'), '\"') AS group_firstname,
+                    TRIM(JSON_EXTRACT(cgt.custom_fields, '$.migration_nadeoscomSW5_customer_group_nachname'), '\"') AS group_lastname
                 FROM `order` o
                 INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
                 INNER JOIN order_transaction ot ON o.id = ot.order_id AND ot.version_id = o.version_id
@@ -106,7 +115,7 @@ class TopRevenueService
                     AND (sms.technical_name IS NULL OR sms.technical_name IN ('paid', 'paid_partially', 'authorized'))
                     {$groupFilter}
             ) customer_orders
-            GROUP BY customer_orders.customer_id
+            GROUP BY customer_orders.customer_id, customer_orders.group_name, customer_orders.group_firstname, customer_orders.group_lastname
             ORDER BY total_revenue DESC
             LIMIT :limit
         ";

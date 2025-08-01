@@ -51,8 +51,13 @@ class TopRevenueController extends StorefrontController
         // Get limit parameter
         $limit = min((int) $request->query->get('limit', 50), 100); // Max 100 items
         
-        // Get group parameter for commission recipient filtering
+        // Get group parameter for commission recipient filtering (plain text like "NC")
         $group = $request->query->get('group', null);
+        
+        // Convert plain text group to base64 for service (matches CommissionService pattern)
+        if ($group !== null) {
+            $group = base64_encode($group);
+        }
 
         try {
             $topRevenueData = $this->topRevenueService->getTopRevenueData($dateFrom, $dateTo, $limit, $group);
