@@ -37,8 +37,8 @@ class TopRevenueController extends StorefrontController
         if ($authResponse) return $authResponse;
 
         // Get date parameters (using existing trait)
-        $dateFrom = $this->getDateFrom($request);
-        $dateTo = $this->getDateTo($request);
+        $dateFrom = $this->getDateFromRequests($request);
+        $dateTo = $this->getDateToRequests($request);
         
         // Default to current month if no dates provided
         if (!$dateFrom || !$dateTo) {
