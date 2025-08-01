@@ -27,7 +27,7 @@ class TopRevenueController extends StorefrontController
     ) {}
 
     #[Route(
-        path: '/top-revenue',
+        path: '/bmd-export/top-revenue',
         name: 'frontend.nadeos.top-revenue',
         methods: ['GET']
     )]
