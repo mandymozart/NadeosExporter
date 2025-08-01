@@ -136,17 +136,53 @@ class TopRevenueService
         ]);
 
         if (!$result) {
+            $this->logger->warning('Customer not found', ['customerId' => $customerId]);
             return null;
         }
 
-        return [
-            'customer_number' => $this->sanitizeUtf8($result['customer_number']),
-            'email' => $this->sanitizeUtf8($result['email']),
-            'first_name' => $this->sanitizeUtf8($result['first_name'] ?? ''),
-            'last_name' => $this->sanitizeUtf8($result['last_name'] ?? ''),
-            'phone_number' => $this->sanitizeUtf8($result['phone_number'] ?? $result['phone'] ?? ''),
-            'company' => $this->sanitizeUtf8($result['company'])
-        ];
+        // Log raw customer data to identify UTF-8 issues
+        $this->logger->info('Raw customer data retrieved', [
+            'customerId' => $customerId,
+            'raw_data' => array_map(function($value) {
+                return $value === null ? 'NULL' : 'length:' . strlen((string)$value);
+            }, $result)
+        ]);
+
+        // Sanitize each field and log any problematic values
+        $sanitizedData = [];
+        foreach (['customer_number', 'email', 'first_name', 'last_name', 'company'] as $field) {
+            $rawValue = $result[$field] ?? '';
+            $sanitizedValue = $this->sanitizeUtf8($rawValue);
+            $sanitizedData[$field] = $sanitizedValue;
+            
+            // Log if sanitization changed the value significantly
+            if (strlen($rawValue) > 0 && strlen($sanitizedValue) !== strlen($rawValue)) {
+                $this->logger->warning('UTF-8 sanitization changed field', [
+                    'field' => $field,
+                    'original_length' => strlen($rawValue),
+                    'sanitized_length' => strlen($sanitizedValue),
+                    'customer_id' => $customerId
+                ]);
+            }
+        }
+        
+        // Handle phone separately (has fallback logic)
+        $phoneValue = $result['phone_number'] ?? $result['phone'] ?? '';
+        $sanitizedData['phone_number'] = $this->sanitizeUtf8($phoneValue);
+
+        // Final JSON test for this customer
+        $testJson = json_encode($sanitizedData);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->logger->error('Customer data still not JSON-safe after sanitization', [
+                'customer_id' => $customerId,
+                'json_error' => json_last_error_msg(),
+                'data_summary' => array_map('strlen', $sanitizedData)
+            ]);
+            // Return null to skip this problematic customer
+            return null;
+        }
+
+        return $sanitizedData;
     }
 
     private function sanitizeUtf8(?string $value): string
