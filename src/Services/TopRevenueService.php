@@ -40,12 +40,12 @@ class TopRevenueService
         private readonly LoggerInterface $logger
     ) {}
 
-    public function getTopRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit = 50): TopRevenueCollection
+    public function getTopRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit = 50, ?string $group = null): TopRevenueCollection
     {
         $collection = new TopRevenueCollection();
         
         // Get revenue data grouped by customer using direct SQL for better performance
-        $revenueData = $this->getCustomerRevenueData($dateFrom, $dateTo, $limit);
+        $revenueData = $this->getCustomerRevenueData($dateFrom, $dateTo, $limit, $group);
         
         $rank = 1;
         foreach ($revenueData as $data) {
@@ -70,11 +70,19 @@ class TopRevenueService
         return $collection;
     }
 
-    private function getCustomerRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit): array
+    private function getCustomerRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit, ?string $group = null): array
     {
         // Use a subquery approach to ensure each order is counted only once per customer
         // This avoids issues with multiple order_customer records per order
         // Filter based on Shopware transaction states - only include paid/authorized orders
+        
+        // Prepare group filtering (like CommissionService)
+        $groupFilter = '';
+        if ($group !== null) {
+            $group = base64_decode($group);
+            $groupFilter = ' AND LOWER(LEFT(cgt.name, 2)) = LOWER(:group) ';
+        }
+        
         $sql = "
             SELECT 
                 customer_orders.customer_id,
@@ -87,11 +95,16 @@ class TopRevenueService
                 FROM `order` o
                 INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
                 INNER JOIN order_transaction ot ON o.id = ot.order_id AND ot.version_id = o.version_id
+                INNER JOIN customer c ON c.id = oc.customer_id
+                INNER JOIN customer_group cg ON cg.id = c.customer_group_id
+                INNER JOIN customer_group_translation cgt ON cgt.customer_group_id = cg.id
                 LEFT JOIN state_machine_state sms ON ot.state_id = sms.id
                 WHERE o.order_date_time >= :dateFrom 
                     AND o.order_date_time <= :dateTo
                     AND o.version_id = :versionId
+                    AND cgt.language_id = :languageId
                     AND (sms.technical_name IS NULL OR sms.technical_name IN ('paid', 'paid_partially', 'authorized'))
+                    {$groupFilter}
             ) customer_orders
             GROUP BY customer_orders.customer_id
             ORDER BY total_revenue DESC
@@ -102,8 +115,14 @@ class TopRevenueService
             'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
             'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
             'versionId' => hex2bin(Defaults::LIVE_VERSION),
+            'languageId' => hex2bin(Defaults::LANGUAGE_SYSTEM),
             'limit' => $limit
         ];
+        
+        // Add group parameter if filtering by commission recipient
+        if ($group !== null) {
+            $params['group'] = $group;
+        }
 
         $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT

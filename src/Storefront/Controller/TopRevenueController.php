@@ -50,9 +50,12 @@ class TopRevenueController extends StorefrontController
 
         // Get limit parameter
         $limit = min((int) $request->query->get('limit', 50), 100); // Max 100 items
+        
+        // Get group parameter for commission recipient filtering
+        $group = $request->query->get('group', null);
 
         try {
-            $topRevenueData = $this->topRevenueService->getTopRevenueData($dateFrom, $dateTo, $limit);
+            $topRevenueData = $this->topRevenueService->getTopRevenueData($dateFrom, $dateTo, $limit, $group);
             
             // Check if PDF output is requested
             if ($request->query->get('format') === 'pdf') {

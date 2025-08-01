@@ -7,7 +7,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use DateTime;
 
 trait DateRequestTrait {
-    function getDateFromRequests(Request $request): ?DateTime
+    function getDateFromRequests(Request $request): DateTime
     {
         // Check for explicit date_from parameter first
         $dateFromParam = $request->query->get('date_from');
@@ -24,7 +24,9 @@ trait DateRequestTrait {
         $allParamsSet = 2 === count(array_intersect($paramsChecked, $request->query->keys()));
         
         if (false === $allParamsSet) {
-            return null; // Let caller handle default
+            // Default to current month for backward compatibility with existing controllers
+            $now = new DateTime();
+            return new DateTime($now->format('Y-m-01 00:00:00'));
         }
 
         $year   = $request->query->get('year');
