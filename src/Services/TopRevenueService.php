@@ -85,14 +85,28 @@ class TopRevenueService
             LIMIT :limit
         ";
 
-        return $this->databaseConnection->fetchAllAssociative($sql, [
+        $params = [
             'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
             'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
             'versionId' => hex2bin(Defaults::LIVE_VERSION),
             'limit' => $limit
-        ], [
+        ];
+
+        // Debug logging
+        error_log("TopRevenue Debug - SQL: " . $sql);
+        error_log("TopRevenue Debug - Params: " . json_encode([
+            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'limit' => $limit
+        ]));
+
+        $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT
         ]);
+
+        error_log("TopRevenue Debug - Result count: " . count($result));
+        
+        return $result;
     }
 
     private function getCustomerDetails(string $customerId): ?array
