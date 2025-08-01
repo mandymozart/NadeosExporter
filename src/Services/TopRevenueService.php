@@ -72,9 +72,30 @@ class TopRevenueService
 
     private function getCustomerRevenueData(DateTime $dateFrom, DateTime $dateTo, int $limit): array
     {
+        // Debug: List all available order states
+        $statesSql = "
+            SELECT DISTINCT sms.technical_name, sms.name, COUNT(*) as order_count
+            FROM `order` o
+            LEFT JOIN state_machine_state sms ON o.state_id = sms.id
+            WHERE o.order_date_time >= :dateFrom 
+                AND o.order_date_time <= :dateTo
+                AND o.version_id = :versionId
+            GROUP BY sms.technical_name, sms.name
+            ORDER BY order_count DESC
+        ";
+        
+        $params = [
+            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
+            'versionId' => hex2bin(Defaults::LIVE_VERSION)
+        ];
+        
+        $states = $this->databaseConnection->fetchAllAssociative($statesSql, $params);
+        $this->logger->error('Available Order States', ['states' => $states]);
+        
         // Use a subquery approach to ensure each order is counted only once per customer
         // This avoids issues with multiple order_customer records per order
-        // Filter for completed orders only and use net amounts
+        // Relaxed filtering - only exclude clearly cancelled/refunded states
         $sql = "
             SELECT 
                 customer_orders.customer_id,
@@ -98,12 +119,7 @@ class TopRevenueService
             LIMIT :limit
         ";
 
-        $params = [
-            'dateFrom' => $dateFrom->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'dateTo' => $dateTo->format(Defaults::STORAGE_DATE_TIME_FORMAT),
-            'versionId' => hex2bin(Defaults::LIVE_VERSION),
-            'limit' => $limit
-        ];
+        $params['limit'] = $limit;
 
         $result = $this->databaseConnection->fetchAllAssociative($sql, $params, [
             'limit' => \PDO::PARAM_INT
