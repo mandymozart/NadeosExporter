@@ -74,20 +74,24 @@ class TopRevenueService
     {
         // Use a subquery approach to ensure each order is counted only once per customer
         // This avoids issues with multiple order_customer records per order
+        // Filter for completed orders only and use net amounts
         $sql = "
             SELECT 
                 customer_orders.customer_id,
-                SUM(customer_orders.amount_total) as total_revenue
+                SUM(customer_orders.amount_net) as total_revenue
             FROM (
                 SELECT DISTINCT
                     oc.customer_id,
                     o.id as order_id,
-                    o.amount_total
+                    o.amount_net
                 FROM `order` o
                 INNER JOIN order_customer oc ON o.id = oc.order_id AND oc.version_id = o.version_id
+                LEFT JOIN state_machine_state sms ON o.state_id = sms.id
                 WHERE o.order_date_time >= :dateFrom 
                     AND o.order_date_time <= :dateTo
                     AND o.version_id = :versionId
+                    AND sms.technical_name IN ('completed', 'shipped', 'delivered', 'paid')
+                    AND sms.technical_name NOT IN ('cancelled', 'refunded')
             ) customer_orders
             GROUP BY customer_orders.customer_id
             ORDER BY total_revenue DESC
