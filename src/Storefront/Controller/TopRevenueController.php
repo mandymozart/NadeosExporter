@@ -12,6 +12,7 @@ use NadeosData\Storefront\Controller\{
     HttpAuthTrait
 };
 use NadeosData\Services\TopRevenueService;
+use NadeosData\Dto\TopRevenueCollection;
 use DateTime;
 use DateTimeZone;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -79,19 +80,45 @@ class TopRevenueController extends StorefrontController
         }
     }
 
-    private function generatePdfResponse($topRevenueData, DateTime $dateFrom, DateTime $dateTo): Response
+    private function generatePdfResponse(TopRevenueCollection $topRevenueData, DateTime $dateFrom, DateTime $dateTo): Response
     {
-        // For now, return a simple HTML table that could be converted to PDF
-        // This follows the pattern used in existing controllers but simplified
-        $html = $this->generateReportHtml($topRevenueData, $dateFrom, $dateTo);
+        $html = $this->generateHtmlContent($topRevenueData, $dateFrom, $dateTo);
         
-        return new Response($html, 200, [
-            'Content-Type' => 'text/html',
-            'Content-Disposition' => 'inline; filename="top-revenue-' . $dateFrom->format('Y-m') . '.html"'
+        // Initialize mPDF
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'L', // Landscape for better table display
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'margin_top' => 16,
+            'margin_bottom' => 16,
+            'margin_header' => 9,
+            'margin_footer' => 9
         ]);
+        
+        // Write HTML content to PDF
+        $mpdf->WriteHTML($html);
+        
+        // Generate filename
+        $filename = sprintf(
+            'top_revenue_%s_to_%s.pdf',
+            $dateFrom->format('Y-m-d'),
+            $dateTo->format('Y-m-d')
+        );
+        
+        // Return PDF response
+        return new Response(
+            $mpdf->Output('', 'S'), // 'S' returns PDF as string
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf('inline; filename="%s"', $filename)
+            ]
+        );
     }
 
-    private function generateReportHtml($topRevenueData, DateTime $dateFrom, DateTime $dateTo): string
+    private function generateHtmlContent(TopRevenueCollection $topRevenueData, DateTime $dateFrom, DateTime $dateTo): string
     {
         $html = '<!DOCTYPE html>
 <html>
