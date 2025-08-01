@@ -74,14 +74,13 @@ class TopRevenueService
     {
         $sql = "
             SELECT 
-                oc.customer_id,
+                o.order_customer_id as customer_id,
                 SUM(o.amount_total) as total_revenue
             FROM `order` o
-            INNER JOIN order_customer oc ON o.id = oc.order_id
             WHERE o.order_date_time >= :dateFrom 
                 AND o.order_date_time <= :dateTo
                 AND o.version_id = :versionId
-            GROUP BY oc.customer_id
+            GROUP BY o.order_customer_id
             ORDER BY total_revenue DESC
             LIMIT :limit
         ";
