@@ -212,8 +212,9 @@ class TopRevenueService
         // Final JSON-safe check
         $testJson = json_encode($value);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // If still problematic, use only ASCII
-            $value = iconv('UTF-8', 'ASCII//IGNORE', $value);
+            // If still problematic, use only ASCII (handle iconv failure)
+            $asciiValue = iconv('UTF-8', 'ASCII//IGNORE', $value);
+            $value = $asciiValue !== false ? $asciiValue : '';
         }
         
         return trim($value);
