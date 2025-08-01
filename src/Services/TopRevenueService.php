@@ -134,12 +134,27 @@ class TopRevenueService
         }
 
         return [
-            'customer_number' => $result['customer_number'],
-            'email' => $result['email'],
-            'first_name' => $result['first_name'] ?? '',
-            'last_name' => $result['last_name'] ?? '',
-            'phone_number' => $result['phone_number'] ?? $result['phone'] ?? '',
-            'company' => $result['company']
+            'customer_number' => $this->sanitizeUtf8($result['customer_number']),
+            'email' => $this->sanitizeUtf8($result['email']),
+            'first_name' => $this->sanitizeUtf8($result['first_name'] ?? ''),
+            'last_name' => $this->sanitizeUtf8($result['last_name'] ?? ''),
+            'phone_number' => $this->sanitizeUtf8($result['phone_number'] ?? $result['phone'] ?? ''),
+            'company' => $this->sanitizeUtf8($result['company'])
         ];
+    }
+
+    private function sanitizeUtf8(?string $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+        
+        // Remove or replace invalid UTF-8 characters
+        $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+        
+        // Remove any remaining non-printable characters except common whitespace
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $value);
+        
+        return trim($value);
     }
 }
