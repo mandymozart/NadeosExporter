@@ -143,17 +143,18 @@ class TopRevenueController extends StorefrontController
     {
         $html = '<style>
             table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }
-            th, td { border: 1px solid #ddd; padding: 4px; text-align: left; }
+            th, td { font-family: Arial, sans-serif; font-size: 10pt; border: 1px solid #ddd; padding: 4px; text-align: left; }
             th { background-color: #f2f2f2; font-weight: bold; }
             .revenue { text-align: right; }
         </style>
         <table>
             <thead>
                 <tr>
-                    <th>Rank</th>
+                    <th>#</th>
+                    <th>Group</th>
                     <th>Revenue</th>
                     <th>Company</th>
-                    <th>Contact Person</th>
+                    <th>Contact</th>
                     <th>Phone</th>
                     <th>Email</th>
                 </tr>
@@ -163,6 +164,7 @@ class TopRevenueController extends StorefrontController
         foreach ($topRevenueData->getItems() as $item) {
             $html .= '<tr>
                 <td>' . $item->rank . '</td>
+                <td>' . htmlspecialchars($item->groupName) . '</td>
                 <td class="revenue">' . $item->getFormattedRevenue() . '</td>
                 <td>' . htmlspecialchars($item->company) . '</td>
                 <td>' . htmlspecialchars($item->contactPerson) . '</td>
