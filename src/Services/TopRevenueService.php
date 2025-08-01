@@ -126,7 +126,7 @@ class TopRevenueService
         ";
 
         $result = $this->databaseConnection->fetchAssociative($sql, [
-            'customerId' => hex2bin($customerId)
+            'customerId' => $customerId
         ]);
 
         if (!$result) {
