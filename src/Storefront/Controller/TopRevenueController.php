@@ -86,7 +86,7 @@ class TopRevenueController extends StorefrontController
         $pdf = new \Mpdf\Mpdf();
         
         // Load the PDF template (same as CommissionPdfGenerationService)
-        $pagecount = $pdf->SetSourceFile(dirname(__DIR__, 2) . '/templates/template.pdf');
+        $pagecount = $pdf->SetSourceFile(dirname(__DIR__, 3) . '/templates/template.pdf');
         $pdf->UseTemplate($pdf->ImportPage($pagecount));
         
         // Set margins and font
