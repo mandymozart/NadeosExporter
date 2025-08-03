@@ -1,3 +1,5 @@
 db_schema_dump.sql
 quick_overview.csv
 sales_by_customer.csv
+/backup-v1
+/test-data
