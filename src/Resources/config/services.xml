@@ -46,12 +46,6 @@
             <argument type="service" id="mail_template.repository" />
         </service>
 
-        <service id="NadeosData\Services\TopRevenueService">
-            <argument type="service" id="Doctrine\DBAL\Connection" />
-            <argument type="service" id="order.repository" />
-            <argument type="service" id="customer.repository" />
-        </service>
-
         <service id="NadeosData\Command\ProvisionsMailCommand">
             <argument type="service" id="logger" />
             <argument type="service" id="NadeosData\Services\CommissionMailService" />
@@ -113,17 +107,6 @@
 
         <service id="NadeosData\Storefront\Controller\ShrinkController" public="true">
             <argument type="service" id="NadeosData\Services\ShrinkService" />
-
-            <call method="setContainer">
-                <argument type="service" id="service_container"/>
-            </call>
-            <call method="setTwig">
-                 <argument type="service" id="twig"/>
-             </call>
-        </service>
-
-        <service id="NadeosData\Storefront\Controller\TopRevenueController" public="true">
-            <argument type="service" id="NadeosData\Services\TopRevenueService" />
 
             <call method="setContainer">
                 <argument type="service" id="service_container"/>

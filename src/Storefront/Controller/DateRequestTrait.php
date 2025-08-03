@@ -9,33 +9,31 @@ use DateTime;
 trait DateRequestTrait {
     function getDateFromRequests(Request $request): DateTime
     {
-        $dateFromParam = $request->query->get('date_from');
-        
-        if (!$dateFromParam) {
-            // Default to start of current month if no date_from provided
-            $now = new DateTime();
-            return new DateTime($now->format('Y-m-01 00:00:00'));
-        }
-        
-        try {
-            return new DateTime($dateFromParam);
-        } catch (\Exception $e) {
-            throw new BadRequestHttpException('Das Datum "date_from" ist fehlerhaft.');
-        }
-    }
+        $paramsChecked = ['year', 'month'];
 
-    function getDateToRequests(Request $request): ?DateTime
-    {
-        $dateToParam = $request->query->get('date_to');
+        $allParamsSet = 2 === count(array_intersect($paramsChecked, $request->query->keys()));
         
-        if (!$dateToParam) {
-            return null; // Let caller handle default
+        if (false === $allParamsSet) {
+            return (new DateTime('now'))->modify('-1 months');
         }
-        
+
+        $year   = $request->query->get('year');
+        $month  = $request->query->get('month');
+
+        if (false === is_numeric($year)) {
+            throw new BadRequestHttpException('Das Jahr muss eine gültige Zahl sein');
+        }
+
+        if (false === is_numeric($month)) {
+            throw new BadRequestHttpException('Das Monat muss ein gültiges Monat sein');
+        }
+
         try {
-            return new DateTime($dateToParam);
+            $date = new DateTime(sprintf('%d-%02d-01', $year, $month));
         } catch (\Exception $e) {
-            throw new BadRequestHttpException('Das Datum "date_to" ist fehlerhaft.');
+            throw new BadRequestHttpException('Das angegebene Datum ist Fehlerhaft.');
         }
+
+        return $date;
     }
 }
