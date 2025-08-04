@@ -1,10 +1,10 @@
-[data-nadeos-exporter-controller="commissions-form"],
-[data-nadeos-exporter-controller="shrink-form"] {
-    .controls {
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 1rem;
-        form {
+.controls  {
+    [data-nadeos-exporter-controller="commissions-form"],
+    [data-nadeos-exporter-controller="shrink-form"] {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    form {
             display: flex;
             gap: 1rem;
             .form-select {
@@ -12,5 +12,4 @@
             }
         }
     }
-    
 }
