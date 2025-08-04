@@ -85,7 +85,7 @@ class OrderExtractor extends AbstractExtractor
         $this->logger->info('Logger active', [
             'customer_id' => bin2hex($customerId)
         ]);
-        if($order->getOrderNumber() === '53053') {
+        if($order->getOrderNumber() === '54096') {
             $this->logger->info('OrderExtractor Debug: Amount Investigation', [
             'order_number' => $order->getOrderNumber(),
             'order_net' => $order->getAmountNet(),
