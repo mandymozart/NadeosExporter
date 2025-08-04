@@ -84,6 +84,7 @@ class BmdExportService
                     'order',
                     'order.billingAddress',
                     'order.billingAddress.country',
+                    'order.lineItems',
                     'order.deliveries',
                     'order.deliveries.shippingOrderAddress',
                     'order.deliveries.shippingOrderAddress.country',
