@@ -15,12 +15,12 @@
             <div class="form-group">
             <select class="form-select" name="year" id="year">
                 {% for year in 2020..2025 %}
-                    <option value="{{ year }}" {% if year == collection|first.orderYear %}selected{% endif %}>{{ year }}</option>
+                    <option value="{{ year }}" {% if year == articles|first.year %}selected{% endif %}>{{ year }}</option>
                 {% endfor %}
             </select>
             <select class="form-select" name="month" id="month">
                 {% for month in 1..12 %}
-                    <option value="{{ month }}" {% if month == collection|first.orderMonth %}selected{% endif %}>{{ month }}</option>
+                    <option value="{{ month }}" {% if month == articles|first.month %}selected{% endif %}>{{ month }}</option>
                 {% endfor %}
             </select>
             </div>
