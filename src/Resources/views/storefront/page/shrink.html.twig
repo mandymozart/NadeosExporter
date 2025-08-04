@@ -9,6 +9,23 @@
 
     <a href="{{ path('frontend.shrink.list-overview', { token: token }) }}">Schwundliste Übersicht</a><br />
 
+    <nav class="controls">
+        <form onSubmit="" class="shrink-form" data-nadeos-exporter-controller="shrink-form">
+            <input type="hidden" name="token" value="{{ token }}">
+            <select class="form-select" name="year" id="year">
+                {% for year in 2020..2025 %}
+                    <option value="{{ year }}" {% if year == collection|first.orderYear %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select" name="month" id="month">
+                {% for month in 1..12 %}
+                    <option value="{{ month }}" {% if month == collection|first.orderMonth %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-buy" type="submit">Update</button>
+        </form>
+    </nav>
+
     <table>
         <thead>
             <tr>
