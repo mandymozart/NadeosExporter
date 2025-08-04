@@ -67,8 +67,7 @@ class OrderExtractor extends AbstractExtractor
     {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
-        $this->logger->info('OrderExtractor Debug: Constructor called');
-        error_log('OrderExtractor Debug: Constructor called');
+
     }
 
     protected function isValidEntity(Entity $entity): bool
@@ -86,15 +85,15 @@ class OrderExtractor extends AbstractExtractor
         $this->logger->info('Logger active', [
             'customer_id' => bin2hex($customerId)
         ]);
-        
-        $this->logger->info('OrderExtractor Debug: Amount Investigation', [
+        if($order->getOrderNumber() === '53053') {
+            $this->logger->info('OrderExtractor Debug: Amount Investigation', [
             'order_number' => $order->getOrderNumber(),
             'order_net' => $order->getAmountNet(),
             'order_total' => $order->getAmountTotal(),
             'document_type' => $document->getDocumentType()->getTechnicalName(),
             'document_number' => $document->getDocumentNumber()
         ]);
-        
+    
         // Debug: Check if line items exist and their details
         $lineItems = $order->getLineItems();
         if ($lineItems) {
@@ -149,6 +148,7 @@ class OrderExtractor extends AbstractExtractor
             ]);
         }
 
+    }
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
         $address  = $order->getBillingAddress();
