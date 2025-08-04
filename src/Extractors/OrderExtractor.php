@@ -85,11 +85,15 @@ class OrderExtractor extends AbstractExtractor
         // $this->logger->info('Order', [
         //     'order_number' => bin2hex($customerId)
         // ]);
+        $referencedDocument = $document->getReferencedDocument();
+        $isCancellation = $referencedDocument instanceof DocumentEntity;
+
         if($order->getOrderNumber() === '54096') {
             $this->logger->info('OrderExtractor Debug: Amount Investigation', [
             'order_number' => $order->getOrderNumber(),
             'order_net' => $order->getAmountNet(),
             'order_total' => $order->getAmountTotal(),
+            'is_cancellation' => $isCancellation,
             'document_type' => $document->getDocumentType()->getTechnicalName(),
             'document_number' => $document->getDocumentNumber()
         ]);
