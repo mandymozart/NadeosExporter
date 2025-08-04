@@ -82,9 +82,9 @@ class OrderExtractor extends AbstractExtractor
 
         // Debug: Log order and document details to investigate amount discrepancy
         $customerId = $order->getOrderCustomer()->getCustomerId();
-        $this->logger->info('Logger active', [
-            'customer_id' => bin2hex($customerId)
-        ]);
+        // $this->logger->info('Order', [
+        //     'order_number' => bin2hex($customerId)
+        // ]);
         if($order->getOrderNumber() === '54096') {
             $this->logger->info('OrderExtractor Debug: Amount Investigation', [
             'order_number' => $order->getOrderNumber(),
@@ -188,13 +188,13 @@ class OrderExtractor extends AbstractExtractor
             2
         ) * -1;
 
-        $this->logger->info('OrderExtractor Debug: Final Calculation', [
-            'order_number' => $order->getOrderNumber(),
-            'tax_amount' => abs($taxAmount),
-            'country' => $customerCountry,
-            'tax_percentage' => $taxPercentage,
-            'is_company' => $isCompany
-        ]);
+        // $this->logger->info('OrderExtractor Debug: Final Calculation', [
+        //     'order_number' => $order->getOrderNumber(),
+        //     'tax_amount' => abs($taxAmount),
+        //     'country' => $customerCountry,
+        //     'tax_percentage' => $taxPercentage,
+        //     'is_company' => $isCompany
+        // ]);
 
         $name = ($isCompany && false === empty($customer->getCompany()))
                     ? $customer->getCompany()
