@@ -76,4 +76,9 @@ class NadeosExporter extends Plugin
     public function postUpdate(UpdateContext $updateContext): void
     {
     }
+
+    //public function executeComposerCommands(): bool
+    //{
+    //    return true;
+    //}
 }
