@@ -191,6 +191,9 @@ class TopRevenueService
             // Return null to skip this problematic customer
             return null;
         }
+        $this->logger->info('Logger active', [
+            'customer_id' => bin2hex($customerId)
+        ]);
 
         return $sanitizedData;
     }
