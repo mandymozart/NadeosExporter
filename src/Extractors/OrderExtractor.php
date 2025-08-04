@@ -181,7 +181,11 @@ class OrderExtractor extends AbstractExtractor
         if ($taxAmount !== $lineItemsTaxAmount) {
             $this->logger->warning('OrderExtractor Debug: Tax Amount Mismatch', [
                 'order_number' => $order->getOrderNumber(),
+                'amount_gross' => $order->getAmountTotal(),
+                'amount_net' => $order->getAmountNet(),
                 'tax_amount' => abs($taxAmount),
+                'line_items_total_net' => $this->getLineItemsTotalNet($order),
+                'line_items_total_gross' => $this->getLineItemsTotalGross($order),
                 'line_items_tax_amount' => $lineItemsTaxAmount,
                 'tax_percentage' => $taxPercentage,
             ]);
