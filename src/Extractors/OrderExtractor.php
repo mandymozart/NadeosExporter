@@ -63,7 +63,7 @@ class OrderExtractor extends AbstractExtractor
     private array $euCountryIds = [];
     private ?LoggerInterface $logger;
 
-    public function __construct(private readonly SystemConfigService $config, private ?LoggerInterface $logger = null)
+    public function __construct(private readonly SystemConfigService $config, ?LoggerInterface $logger = null)
     {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
