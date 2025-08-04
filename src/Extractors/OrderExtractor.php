@@ -61,9 +61,9 @@ class OrderExtractor extends AbstractExtractor
     ];
 
     private array $euCountryIds = [];
-    private ?LoggerInterface $logger;
+    private LoggerInterface $logger;
 
-    public function __construct(private readonly SystemConfigService $config, ?LoggerInterface $logger = null)
+    public function __construct(private readonly SystemConfigService $config, LoggerInterface $logger)
     {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
@@ -81,6 +81,11 @@ class OrderExtractor extends AbstractExtractor
         $order    = $entity->getOrder();
 
         // Debug: Log order and document details to investigate amount discrepancy
+        $customerId = $order->getOrderCustomer()->getCustomerId();
+        $this->logger->info('Logger active', [
+            'customer_id' => bin2hex($customerId)
+        ]);
+        
         $this->logger->info('OrderExtractor Debug: Amount Investigation', [
             'order_number' => $order->getOrderNumber(),
             'order_net' => $order->getAmountNet(),
