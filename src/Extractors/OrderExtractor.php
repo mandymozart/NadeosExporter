@@ -67,6 +67,7 @@ class OrderExtractor extends AbstractExtractor
     {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
+        $this->logger->info('OrderExtractor Debug: Constructor called');
     }
 
     protected function isValidEntity(Entity $entity): bool
