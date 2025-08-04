@@ -94,7 +94,14 @@ class OrderExtractor extends AbstractExtractor
         $customerNumber = (string) $customer->getCustomerNumber();
         $customerNumber = ( self::CUSTOMER_NUMBER_PREFIXES[ strlen($customerNumber) ] ?? '' ) . $customerNumber;
 
-        $isCompany = $order->getAmountTotal() === $order->getAmountNet();
+        // $isCompany = $order->getAmountTotal() === $order->getAmountNet();
+        // Calculate invoice-accurate amounts from line items instead of stored order totals
+        // This ensures CSV export matches actual invoice amounts (e.g., 578,52 € instead of 584,52 €)
+        $recalculatedAmounts = $this->calculateInvoiceAccurateAmounts($order);
+        $documentAmountNet = $recalculatedAmounts['net'];
+        $documentAmountTotal = $recalculatedAmounts['total'];
+
+        $isCompany = $documentAmountTotal === $documentAmountNet;
         if (true === $isCompany) {
             list (
                 $accountCounterpart,
@@ -111,7 +118,8 @@ class OrderExtractor extends AbstractExtractor
         }
 
         $taxAmount = round(
-            $order->getAmountTotal() - $order->getAmountNet(),
+            // $order->getAmountTotal() - $order->getAmountNet(),
+            $documentAmountTotal - $documentAmountNet,
             2
         ) * -1;
 
@@ -131,8 +139,10 @@ class OrderExtractor extends AbstractExtractor
         return [
             'order.number'                  => $order->getOrderNumber(),
             'order.date'                    => $order->getOrderDate(),
-            'order.amountGross'             => $order->getAmountTotal(),
-            'order.amountNet'               => $order->getAmountNet(),
+            // 'order.amountGross'             => $order->getAmountTotal(),
+            // 'order.amountNet'               => $order->getAmountNet(),
+            'order.amountGross'             => $documentAmountTotal, // Use recalculated amount
+            'order.amountNet'               => $documentAmountNet,   // Use recalculated amount
             'order.amountTax'               => $taxAmount,
             'orderTax.accountCounterpart'   => $accountCounterpart,
             'orderTax.taxPercentage'        => $taxPercentage,
@@ -157,6 +167,60 @@ class OrderExtractor extends AbstractExtractor
             'referencedDocument.name'       => $document->getReferencedDocument()?->getDocumentType()->getName(),
             'referencedDocument.number'     => $document->getReferencedDocument()?->getDocumentNumber(),
             'referencedDocument.date'       => $document->getReferencedDocument()?->getCreatedAt(),
+        ];
+    }
+
+    /**
+     * Calculate invoice-accurate amounts from order line items to match actual invoice display
+     * This resolves discrepancies between stored order totals and generated invoice amounts
+     */
+    private function calculateInvoiceAccurateAmounts($order): array
+    {
+        $netTotal = 0;
+        $grossTotal = 0;
+        
+        // Get line items from order
+        $lineItems = $order->getLineItems();
+        
+        if ($lineItems && $lineItems->count() > 0) {
+            foreach ($lineItems as $lineItem) {
+                // Only include product line items, exclude shipping, discounts, etc.
+                if ($lineItem->getType() === 'product') {
+                    $lineNetPrice = $lineItem->getTotalPrice();
+                    $quantity = $lineItem->getQuantity();
+                    
+                    // Calculate line item totals
+                    $lineNetTotal = $lineNetPrice * $quantity;
+                    
+                    // Get tax rate for this line item
+                    $taxRules = $lineItem->getPrice()?->getTaxRules();
+                    $taxRate = 0;
+                    if ($taxRules && $taxRules->count() > 0) {
+                        $taxRate = $taxRules->first()->getTaxRate();
+                    }
+                    
+                    // Calculate gross amount for this line item
+                    $lineGrossTotal = $lineNetTotal * (1 + ($taxRate / 100));
+                    
+                    $netTotal += $lineNetTotal;
+                    $grossTotal += $lineGrossTotal;
+                }
+            }
+            
+            // Round to 2 decimal places to match invoice display
+            $netTotal = round($netTotal, 2);
+            $grossTotal = round($grossTotal, 2);
+        }
+        
+        // Fallback to order amounts if line item calculation fails
+        if ($netTotal == 0) {
+            $netTotal = $order->getAmountNet();
+            $grossTotal = $order->getAmountTotal();
+        }
+        
+        return [
+            'net' => $netTotal,
+            'total' => $grossTotal
         ];
     }
 
