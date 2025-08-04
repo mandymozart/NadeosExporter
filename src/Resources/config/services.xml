@@ -10,10 +10,6 @@
         </service>
 
         <service id="NadeosData\Extractors\CustomerExtractor"></service>
-        <service id="NadeosData\Extractors\OrderExtractor">
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
-            <argument type="service" id="logger" />
-        </service>
 
         <service id="NadeosData\Services\BmdExportService">
             <argument type="service" id="logger" />
