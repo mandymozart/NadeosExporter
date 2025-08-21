@@ -84,6 +84,7 @@ class BmdExportService
                     'order',
                     'order.billingAddress',
                     'order.billingAddress.country',
+                    'order.lineItems',
                     'order.deliveries',
                     'order.deliveries.shippingOrderAddress',
                     'order.deliveries.shippingOrderAddress.country',
@@ -108,6 +109,7 @@ class BmdExportService
         return $file;
     }
 
+    // This is where the mess starts. perhapse the entity is wrong in the sql query.
     private function getExtractedDatas(ExtractorInterface $extractor, DateTime $date): \Generator
     {
         $iterator = $this->getOrdersForDateframe($date);

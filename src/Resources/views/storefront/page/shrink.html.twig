@@ -9,6 +9,48 @@
 
     <a href="{{ path('frontend.shrink.list-overview', { token: token }) }}">Schwundliste Übersicht</a><br />
 
+    <nav class="controls">
+        <form onSubmit="" class="shrink-form" data-nadeos-exporter-controller="shrink-form">
+            <input type="hidden" name="token" value="{{ token }}">
+            <div class="form-group">
+            <select class="form-select" name="year" id="year">
+                {% for year in 2020..2025 %}
+                    <option value="{{ year }}" {% if year == articles|first.year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select" name="month" id="month">
+                {% for month in 1..12 %}
+                    <option value="{{ month }}" {% if month == articles|first.month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+            </div>
+            <div class="form-actions">
+            <button class="btn btn-buy" type="submit">Update</button>
+            </div>
+        </form>
+    </nav>
+
+    <style>
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .controls [data-nadeos-exporter-controller="shrink-form"] .form-select {
+            width: auto;
+        }
+        .controls [data-nadeos-exporter-controller="shrink-form"] .btn-buy {
+            overflow: visible;
+            width: auto;
+        }
+        .controls [data-nadeos-exporter-controller="shrink-form"] .form-group {
+            display: flex;
+        }
+        .controls [data-nadeos-exporter-controller="shrink-form"] .form-actions {
+        }
+    </style>
+
     <table>
         <thead>
             <tr>

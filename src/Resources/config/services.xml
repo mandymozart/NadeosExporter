@@ -12,10 +12,11 @@
         <service id="NadeosData\Extractors\CustomerExtractor"></service>
         <service id="NadeosData\Extractors\OrderExtractor">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
         </service>
 
         <service id="NadeosData\Services\BmdExportService">
-            <argument type="service" id="logger" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <!--<argument type="service" id="order.repository" />-->
             <argument type="service" id="document.repository" />
             <argument type="service" id="shopware.filesystem.private" />
@@ -41,7 +42,7 @@
 
         <service id="NadeosData\Services\CommissionMailService">
             <argument type="service" id="NadeosData\Services\CommissionService" />
-            <argument type="service" id="logger" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <argument type="service" id="Shopware\Core\Content\Mail\Service\SendMailTemplate" />
             <argument type="service" id="mail_template.repository" />
         </service>
@@ -53,7 +54,7 @@
         </service>
 
         <service id="NadeosData\Command\ProvisionsMailCommand">
-            <argument type="service" id="logger" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <argument type="service" id="NadeosData\Services\CommissionMailService" />
             <argument type="service" id="sales_channel_domain.repository" />
 
@@ -62,7 +63,7 @@
 
         <service id="NadeosData\Command\BMDExportOrdersCommand">
             <argument type="service" id="NadeosData\Services\BmdExportService" />
-            <argument type="service" id="logger" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <argument type="service" id="shopware.filesystem.private"/>
 
             <tag name="console.command"/>
@@ -70,7 +71,7 @@
 
         <service id="NadeosData\Command\BMDExportCustomersCommand">
             <argument type="service" id="NadeosData\Services\BmdExportService" />
-            <argument type="service" id="logger" />
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <argument type="service" id="shopware.filesystem.private"/>
 
             <tag name="console.command"/>
@@ -115,7 +116,7 @@
 
         <service id="NadeosData\Storefront\Controller\TopRevenueController" public="true">
             <argument type="service" id="NadeosData\Services\TopRevenueService" />
-
+            <argument type="service" id="monolog.logger.nadeos_exporter" />
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>

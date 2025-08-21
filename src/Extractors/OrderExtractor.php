@@ -7,6 +7,7 @@ use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
+use Psr\Log\LoggerInterface;
 
 /*
 4000	Erlöse Naturkosmetik    20%	         20,00
@@ -33,26 +34,26 @@ class OrderExtractor extends AbstractExtractor
     const TAX_DETAILS_FALLBACK = [4000, 20];    // [account, tax]
     const TAX_DETAILS = [
         // ISO2 => [account, tax]
-        'AT'  => ['4000', 20], // Austria
-        'DE'  => ['4001', 19], // Germany
-        'FR'  => ['4002', 20], // France
-        'ES'  => ['4003', 21], // Spain
-        'HR'  => ['4004', 25], // Croatia
-        'HU'  => ['4005', 27], // Hungary
-        'SE'  => ['4006', 25], // Sweden
-        'BE'  => ['4007', 21], // Belgium
-        'IE'  => ['4008', 23], // Ireland
-        'IT'  => ['4009', 22], // Italy
-        'LU'  => ['4010', 17], // Luxembourg
-        'NL'  => ['4011', 21], // Netherlands
-        'PL'  => ['4012', 23], // Poland
-        'SI'  => ['4013', 22], // Slovenia
+        'AT' => ['4000', 20], // Austria
+        'DE' => ['4001', 19], // Germany
+        'FR' => ['4002', 20], // France
+        'ES' => ['4003', 21], // Spain
+        'HR' => ['4004', 25], // Croatia
+        'HU' => ['4005', 27], // Hungary
+        'SE' => ['4006', 25], // Sweden
+        'BE' => ['4007', 21], // Belgium
+        'IE' => ['4008', 23], // Ireland
+        'IT' => ['4009', 22], // Italy
+        'LU' => ['4010', 17], // Luxembourg
+        'NL' => ['4011', 21], // Netherlands
+        'PL' => ['4012', 23], // Poland
+        'SI' => ['4013', 22], // Slovenia
     ];
-    const TAX_DETAILS_TAXCODE                       = '1';
+    const TAX_DETAILS_TAXCODE = '1';
 
-                                                   // [ accountCounterpart, taxPercentage, taxCode ]
-    const TAX_DETAILS_FOR_COMPANIES_IN_EU           = [ '4100', 0, '7' ];
-    const TAX_DETAILS_FOR_COMPANIES_NOT_EU          = [ '4050', 0, '5' ];
+    // [ accountCounterpart, taxPercentage, taxCode ]
+    const TAX_DETAILS_FOR_COMPANIES_IN_EU = ['4100', 0, '7'];
+    const TAX_DETAILS_FOR_COMPANIES_NOT_EU = ['4050', 0, '5'];
 
     const CUSTOMER_NUMBER_PREFIXES = [
         4 => '20',
@@ -60,10 +61,13 @@ class OrderExtractor extends AbstractExtractor
     ];
 
     private array $euCountryIds = [];
+    private LoggerInterface $logger;
 
-    public function __construct(private readonly SystemConfigService $config)
+    public function __construct(private readonly SystemConfigService $config, LoggerInterface $logger)
     {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
+        $this->logger = $logger;
+
     }
 
     protected function isValidEntity(Entity $entity): bool
@@ -74,39 +78,93 @@ class OrderExtractor extends AbstractExtractor
     private function extractEntityBeauty(Entity $entity): array
     {
         $document = $entity;
-        $order    = $entity->getOrder();
+        $order = $entity->getOrder();
 
+
+        // if ($order->getOrderNumber() === '54096') {
+        //     // Debug: Check if line items exist and their details
+        //     $lineItems = $order->getLineItems();
+        //     if ($lineItems) {
+        //         $totalLineNet = 0;
+        //         $totalLineGross = 0;
+
+        //         foreach ($lineItems as $lineItem) {
+        //             $type = $lineItem->getType();
+        //             $label = $lineItem->getLabel();
+        //             $quantity = $lineItem->getQuantity();
+        //             $unitPrice = $lineItem->getUnitPrice();
+        //             $totalPrice = $lineItem->getTotalPrice();
+
+        //             $lineDebug = [
+        //                 'type' => $type,
+        //                 'label' => $label,
+        //                 'quantity' => $quantity,
+        //                 'unit_price' => $unitPrice,
+        //                 'total_price' => $totalPrice
+        //             ];
+
+        //             if ($type === 'product') {
+        //                 $totalLineNet += $totalPrice;
+
+        //                 // Try to get tax info
+        //                 $price = $lineItem->getPrice();
+        //                 if ($price && $price->getTaxRules()) {
+        //                     $taxRules = $price->getTaxRules();
+        //                     if ($taxRules->count() > 0) {
+        //                         $taxRate = $taxRules->first()->getTaxRate();
+        //                         $lineGross = $totalPrice * (1 + ($taxRate / 100));
+        //                         $totalLineGross += $lineGross;
+        //                         $lineDebug['tax_rate'] = $taxRate;
+        //                         $lineDebug['line_gross'] = $lineGross;
+        //                     }
+        //                 }
+        //             }
+
+        //             $lineItemsDebug[] = $lineDebug;
+        //         }
+
+        //         // $this->logger->info('OrderExtractor Debug: Line Items Analysis', [
+        //         //     'line_items_count' => $lineItems->count(),
+        //         //     'calculated_net' => $totalLineNet,
+        //         //     'calculated_gross' => $totalLineGross,
+        //         //     'line_items' => $lineItemsDebug
+        //         // ]);
+        //     } else {
+        //         $this->logger->info('OrderExtractor Debug: No line items found', [
+        //             'order_number' => $order->getOrderNumber()
+        //         ]);
+        //     }
+
+        // }
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
-        $address  = $order->getBillingAddress();
+        $address = $order->getBillingAddress();
         $customer = $order->getOrderCustomer();
         $referencedDocument = $document->getReferencedDocument();
 
         if ($shippingAddressCountry) {
-            $customerCountry            = $shippingAddressCountry->getIso();
+            $customerCountry = $shippingAddressCountry->getIso();
             $customerCountryIsEuCountry = in_array($shippingAddressCountry->getId(), $this->euCountryIds);
-        }
-        else {
-            $customerCountry            = $address->getCountry()->getIso();
+        } else {
+            $customerCountry = $address->getCountry()->getIso();
             $customerCountryIsEuCountry = in_array($address->getCountry()->getId(), $this->euCountryIds);
         }
 
         $customerNumber = (string) $customer->getCustomerNumber();
-        $customerNumber = ( self::CUSTOMER_NUMBER_PREFIXES[ strlen($customerNumber) ] ?? '' ) . $customerNumber;
+        $customerNumber = (self::CUSTOMER_NUMBER_PREFIXES[strlen($customerNumber)] ?? '') . $customerNumber;
 
         $isCompany = $order->getAmountTotal() === $order->getAmountNet();
         if (true === $isCompany) {
-            list (
+            list(
                 $accountCounterpart,
                 $taxPercentage,
                 $taxCode
             ) = $customerCountryIsEuCountry ? self::TAX_DETAILS_FOR_COMPANIES_IN_EU : self::TAX_DETAILS_FOR_COMPANIES_NOT_EU;
-        }
-        else {
-            list (
+        } else {
+            list(
                 $accountCounterpart,
                 $taxPercentage
-            )        = self::TAX_DETAILS[$customerCountry] ?? self::TAX_DETAILS_FALLBACK;
+            ) = self::TAX_DETAILS[$customerCountry] ?? self::TAX_DETAILS_FALLBACK;
             $taxCode = self::TAX_DETAILS_TAXCODE;
         }
 
@@ -115,9 +173,27 @@ class OrderExtractor extends AbstractExtractor
             2
         ) * -1;
 
+        $lineItemsTaxAmount = round(
+            $this->getLineItemsTotalNet($order) - $this->getLineItemsTotalGross($order),
+            2
+        ) * -1;
+
+        if ($taxAmount !== $lineItemsTaxAmount) {
+            $this->logger->warning('OrderExtractor Debug: Tax Amount Mismatch', [
+                'order_number' => $order->getOrderNumber(),
+                'amount_gross' => $order->getAmountTotal(),
+                'amount_net' => $order->getAmountNet(),
+                'tax_amount' => abs($taxAmount),
+                'line_items_total_net' => $this->getLineItemsTotalNet($order),
+                'line_items_total_gross' => $this->getLineItemsTotalGross($order),
+                'line_items_tax_amount' => $lineItemsTaxAmount,
+                'tax_percentage' => $taxPercentage,
+            ]);
+        }
+
         $name = ($isCompany && false === empty($customer->getCompany()))
-                    ? $customer->getCompany()
-                    : $customer->getLastname();
+            ? $customer->getCompany()
+            : $customer->getLastname();
 
         $name = trim(implode(" ", [
             $address->getFirstname(),
@@ -129,35 +205,86 @@ class OrderExtractor extends AbstractExtractor
         }
 
         return [
-            'order.number'                  => $order->getOrderNumber(),
-            'order.date'                    => $order->getOrderDate(),
-            'order.amountGross'             => $order->getAmountTotal(),
-            'order.amountNet'               => $order->getAmountNet(),
-            'order.amountTax'               => $taxAmount,
-            'orderTax.accountCounterpart'   => $accountCounterpart,
-            'orderTax.taxPercentage'        => $taxPercentage,
-            'orderTax.taxCode'              => $taxCode,
-            'customer.isCompany'            => $isCompany,
-            'customer.companyVatId'         => $customer->getVatIds() ? $customer->getVatIds()[0] : null,
-            'customer.customerNumber'       => $customerNumber,
-            'customer.companyName'          => $customer->getCompany(),
-            'customer.name'                 => $name,
-            'customer.firstName'            => $customer->getFirstname(),
-            'customer.lastName'             => $customer->getLastname(),
-            'orderCustomerAddress.street'   => $address->getStreet(),
-            'orderCustomerAddress.zipCode'  => $address->getZipCode(),
-            'orderCustomerAddress.city'     => $address->getCity(),
-            'orderCustomerAddress.country'  => $address->getCountry()->getIso(),
-            'document.type'                 => $document->getDocumentType()->getTechnicalName(),
-            'document.name'                 => $document->getDocumentType()->getName(),
-            'document.number'               => $document->getDocumentNumber(),
-            'document.date'                 => $document->getCreatedAt(),
-            'document.dateUpdated'          => $document->getUpdatedAt(),
-            'referencedDocument.type'       => $document->getReferencedDocument()?->getDocumentType()->getTechnicalName(),
-            'referencedDocument.name'       => $document->getReferencedDocument()?->getDocumentType()->getName(),
-            'referencedDocument.number'     => $document->getReferencedDocument()?->getDocumentNumber(),
-            'referencedDocument.date'       => $document->getReferencedDocument()?->getCreatedAt(),
+            'order.number' => $order->getOrderNumber(),
+            'order.date' => $order->getOrderDate(),
+            'order.amountGross' => $this->getLineItemsTotalGross($order),
+            // 'order.amountGross'             => $order->getAmountTotal(),
+            'order.amountNet' => $this->getLineItemsTotalNet($order),
+            // 'order.amountNet'               => $order->getAmountNet(),
+            'order.amountTax' => $taxAmount,
+            'orderTax.accountCounterpart' => $accountCounterpart,
+            'orderTax.taxPercentage' => $taxPercentage,
+            'orderTax.taxCode' => $taxCode,
+            'customer.isCompany' => $isCompany,
+            'customer.companyVatId' => $customer->getVatIds() ? $customer->getVatIds()[0] : null,
+            'customer.customerNumber' => $customerNumber,
+            'customer.companyName' => $customer->getCompany(),
+            'customer.name' => $name,
+            'customer.firstName' => $customer->getFirstname(),
+            'customer.lastName' => $customer->getLastname(),
+            'orderCustomerAddress.street' => $address->getStreet(),
+            'orderCustomerAddress.zipCode' => $address->getZipCode(),
+            'orderCustomerAddress.city' => $address->getCity(),
+            'orderCustomerAddress.country' => $address->getCountry()->getIso(),
+            'document.type' => $document->getDocumentType()->getTechnicalName(),
+            'document.name' => $document->getDocumentType()->getName(),
+            'document.number' => $document->getDocumentNumber(),
+            'document.date' => $document->getCreatedAt(),
+            'document.dateUpdated' => $document->getUpdatedAt(),
+            'referencedDocument.type' => $document->getReferencedDocument()?->getDocumentType()->getTechnicalName(),
+            'referencedDocument.name' => $document->getReferencedDocument()?->getDocumentType()->getName(),
+            'referencedDocument.number' => $document->getReferencedDocument()?->getDocumentNumber(),
+            'referencedDocument.date' => $document->getReferencedDocument()?->getCreatedAt(),
         ];
+    }
+
+    protected function getLineItemsTotalNet(OrderEntity $order): float
+    {
+        $lineItems = $order->getLineItems();
+        $totalNet = 0;
+
+        foreach ($lineItems as $lineItem) {
+            $type = $lineItem->getType();
+            
+            if ($type === 'product') {
+                $totalNet += $lineItem->getTotalPrice();
+            }
+        }
+
+        return $totalNet;
+    }
+
+    protected function getLineItemsTotalGross(OrderEntity $order): float
+    {
+        $lineItems = $order->getLineItems();
+        $totalGross = 0;
+
+        foreach ($lineItems as $lineItem) {
+            $type = $lineItem->getType();
+            
+            if ($type === 'product') {
+                $totalPrice = $lineItem->getTotalPrice();
+                
+                // Try to get tax info
+                $price = $lineItem->getPrice();
+                if ($price && $price->getTaxRules()) {
+                    $taxRules = $price->getTaxRules();
+                    if ($taxRules->count() > 0) {
+                        $taxRate = $taxRules->first()->getTaxRate();
+                        $lineGross = $totalPrice * (1 + ($taxRate / 100));
+                        $totalGross += $lineGross;
+                    } else {
+                        // No tax rules, assume net = gross
+                        $totalGross += $totalPrice;
+                    }
+                } else {
+                    // No price info, assume net = gross
+                    $totalGross += $totalPrice;
+                }
+            }
+        }
+
+        return $totalGross;
     }
 
     protected function extractEntity(Entity $entity): array
@@ -165,32 +292,32 @@ class OrderExtractor extends AbstractExtractor
         $datas = $this->extractEntityBeauty($entity);
 
         return [
-            'satzart' 		=> '',
-            'konto' 		=> $datas['customer.customerNumber'],
-            'gkonto'		=> $datas['orderTax.accountCounterpart'],
-            'belegnr'		=> $datas['order.number'],                      # eigl. dokument-nr: $zeile->docID,
-            'belegdatum' 	=> $datas['order.date']->format('d.m.Y'),       # eigl. dokument-datum: date("d.m.Y", strtotime($zeile->datum)),
-            'buchsymbol'	=> 'AR',
-            'buchcode'		=> '1',
-            'prozent'		=> $datas['orderTax.taxPercentage'],
-            'steuercode'	=> $datas['orderTax.taxCode'],
-            'betrag'		=> $datas['order.amountGross'],
-            'steuer'		=> $datas['order.amountTax'],
-            'text'			=> $datas['customer.name'],
-            'kost'			=> '',
-            'verbuchstatus'	=> '',
+            'satzart' => '',
+            'konto' => $datas['customer.customerNumber'],
+            'gkonto' => $datas['orderTax.accountCounterpart'],
+            'belegnr' => $datas['order.number'],                      # eigl. dokument-nr: $zeile->docID,
+            'belegdatum' => $datas['order.date']->format('d.m.Y'),       # eigl. dokument-datum: date("d.m.Y", strtotime($zeile->datum)),
+            'buchsymbol' => 'AR',
+            'buchcode' => '1',
+            'prozent' => $datas['orderTax.taxPercentage'],
+            'steuercode' => $datas['orderTax.taxCode'],
+            'betrag' => $datas['order.amountGross'],
+            'steuer' => $datas['order.amountTax'],
+            'text' => $datas['customer.name'],
+            'kost' => '',
+            'verbuchstatus' => '',
 
-            'order.number'      => $datas['order.number'],
-            'order.date'        => $datas['order.date']?->format('d.m.Y'),
-            'document.type'     => $datas['document.type'],
-            'document.name'     => $datas['document.name'],
-            'document.number'   => $datas['document.number'],
-            'document.date'     => $datas['document.date']?->format('d.m.Y'),
+            'order.number' => $datas['order.number'],
+            'order.date' => $datas['order.date']?->format('d.m.Y'),
+            'document.type' => $datas['document.type'],
+            'document.name' => $datas['document.name'],
+            'document.number' => $datas['document.number'],
+            'document.date' => $datas['document.date']?->format('d.m.Y'),
             'document.dateUpdated' => $datas['document.date']?->format('d.m.Y'),
-            'referencedDocument.type'   => $datas['referencedDocument.type'],
-            'referencedDocument.name'   => $datas['referencedDocument.name'],
+            'referencedDocument.type' => $datas['referencedDocument.type'],
+            'referencedDocument.name' => $datas['referencedDocument.name'],
             'referencedDocument.number' => $datas['referencedDocument.number'],
-            'referencedDocument.date'   => $datas['referencedDocument.date']?->format('d.m.Y'),
+            'referencedDocument.date' => $datas['referencedDocument.date']?->format('d.m.Y'),
         ];
     }
 }
