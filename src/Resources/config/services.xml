@@ -95,9 +95,6 @@
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
-            <call method="setTwig">
-                 <argument type="service" id="twig"/>
-             </call>
         </service>
 
         <service id="NadeosData\Storefront\Controller\BmdExportController" public="true">
@@ -106,9 +103,6 @@
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
-            <call method="setTwig">
-                 <argument type="service" id="twig"/>
-             </call>
         </service>
 
         <service id="NadeosData\Storefront\Controller\ShrinkController" public="true">
@@ -117,9 +111,6 @@
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
-            <call method="setTwig">
-                 <argument type="service" id="twig"/>
-             </call>
         </service>
 
         <service id="NadeosData\Storefront\Controller\TopRevenueController" public="true">
@@ -128,9 +119,6 @@
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
-            <call method="setTwig">
-                 <argument type="service" id="twig"/>
-             </call>
         </service>
 
         <service id="NadeosData\Core\Content\Example\SalesChannel\ExampleRoute">
