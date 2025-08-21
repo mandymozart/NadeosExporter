@@ -2,7 +2,7 @@
     "name": "nadeos-data/nadeos-exporter",
     "description": "nadeos-data/nadeos-exporter",
     "type": "shopware-platform-plugin",
-    "version": "1.1.55",
+    "version": "1.1.56",
     "license": "MIT",
     "require": {
         "shopware/core": "~6.6.0",
