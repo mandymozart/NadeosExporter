@@ -24,6 +24,9 @@ use Psr\Log\LoggerInterface;
 4011	Erlöse Niederlande      21% EU-OSS	 21,00
 4012	Erlöse Polen            23% EU-OSS	 23,00
 4013	Erlöse Slowenien        22% EU-OSS	 22,00
+4014    Erlöse Dänemark         25% EU-OSS   25,00
+4015    Erlöse Malta            18% EU-OSS   18,00
+4016    Erlöse Tschechien       21% EU-OSS   21,00
 4031	Erlöse Deutschland          EU-OSS	  7,00
 4050	Erlöse (Ausfuhrlief.)    0% 	      0,00
 4100	Erlöse ig. Lieferungen (steuerfrei)	  0,00
@@ -48,6 +51,9 @@ class OrderExtractor extends AbstractExtractor
         'NL' => ['4011', 21], // Netherlands
         'PL' => ['4012', 23], // Poland
         'SI' => ['4013', 22], // Slovenia
+        'DK' => ['4014', 25], // Denmark
+        'MT' => ['4015', 18], // Malta
+        'CZ' => ['4016', 21], // Czechia 
     ];
     const TAX_DETAILS_TAXCODE = '1';
 
@@ -80,7 +86,7 @@ class OrderExtractor extends AbstractExtractor
         $document = $entity;
         $order = $entity->getOrder();
 
-
+        // DEBUG LINE ITEM
         // if ($order->getOrderNumber() === '54096') {
         //     // Debug: Check if line items exist and their details
         //     $lineItems = $order->getLineItems();
@@ -136,6 +142,7 @@ class OrderExtractor extends AbstractExtractor
         //     }
 
         // }
+
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
         $address = $order->getBillingAddress();
@@ -173,16 +180,19 @@ class OrderExtractor extends AbstractExtractor
             2
         ) * -1;
 
+        // DEBUG: Compare tax amount with line items calculation
         $lineItemsTaxAmount = round(
             $this->getLineItemsTotalNet($order) - $this->getLineItemsTotalGross($order),
             2
         ) * -1;
-
         if ($taxAmount !== $lineItemsTaxAmount) {
             $this->logger->warning('OrderExtractor Debug: Tax Amount Mismatch', [
                 'order_number' => $order->getOrderNumber(),
                 'amount_gross' => $order->getAmountTotal(),
                 'amount_net' => $order->getAmountNet(),
+                'account_counterpart' => $accountCounterpart,
+                'calculated_tax_amount' => abs($taxAmount),
+                'tax_code' => $taxCode,
                 'tax_amount' => abs($taxAmount),
                 'line_items_total_net' => $this->getLineItemsTotalNet($order),
                 'line_items_total_gross' => $this->getLineItemsTotalGross($order),
@@ -207,10 +217,10 @@ class OrderExtractor extends AbstractExtractor
         return [
             'order.number' => $order->getOrderNumber(),
             'order.date' => $order->getOrderDate(),
-            'order.amountGross' => $this->getLineItemsTotalGross($order),
-            // 'order.amountGross'             => $order->getAmountTotal(),
-            'order.amountNet' => $this->getLineItemsTotalNet($order),
-            // 'order.amountNet'               => $order->getAmountNet(),
+            // 'order.amountGross' => $this->getLineItemsTotalGross($order),
+            'order.amountGross'             => $order->getAmountTotal(),
+            // 'order.amountNet' => $this->getLineItemsTotalNet($order),
+            'order.amountNet'               => $order->getAmountNet(),
             'order.amountTax' => $taxAmount,
             'orderTax.accountCounterpart' => $accountCounterpart,
             'orderTax.taxPercentage' => $taxPercentage,
@@ -238,6 +248,8 @@ class OrderExtractor extends AbstractExtractor
         ];
     }
 
+    // Calculate total net of product line items
+    // TODO: add tax rules by country and client type (b2b or b2c)
     protected function getLineItemsTotalNet(OrderEntity $order): float
     {
         $lineItems = $order->getLineItems();
@@ -254,6 +266,8 @@ class OrderExtractor extends AbstractExtractor
         return $totalNet;
     }
 
+    // Calculate total gross of product line items
+    // TODO: add tax rules by country and client type (b2b or b2c)
     protected function getLineItemsTotalGross(OrderEntity $order): float
     {
         $lineItems = $order->getLineItems();
