@@ -7,6 +7,44 @@
     <a href="{{ path('frontend.nadeos.commissions', { token: token }) }}">Provisionen</a>&nbsp;|&nbsp;
     <a href="{{ path('frontend.shrink.list',        { token: token }) }}">Schwundliste</a>
 
+    <nav class="controls">
+        <form onSubmit="" class="overview" data-nadeos-exporter-controller="overview">
+            <input type="hidden" name="token" value="{{ token }}">
+            <select class="form-select" name="year" id="year">
+                {% for year in 2020..2025 %}
+                    <option value="{{ year }}" {% if year == collection|first.orderYear %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select" name="month" id="month">
+                {% for month in 1..12 %}
+                    <option value="{{ month }}" {% if month == collection|first.orderMonth %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-buy" type="submit">Update</button>
+        </form>
+    </nav>
+
+    <style>
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        .controls [data-nadeos-exporter-controller="overview"] .form-select {
+            width: auto;
+        }
+        .controls [data-nadeos-exporter-controller="overview"] .btn-buy {
+            overflow: visible;
+            width: auto;
+        }
+        .controls [data-nadeos-exporter-controller="overview"] .form-group {
+            display: flex;
+        }
+        .controls [data-nadeos-exporter-controller="overview"] .form-actions {
+        } 
+    </style>
+
     <table class="table">
         <thead>
             <tr>
