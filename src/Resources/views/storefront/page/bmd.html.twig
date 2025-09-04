@@ -20,8 +20,8 @@
             </tr>
         </thead>
         <tbody>
-            {% for i in 0..6 %}
-                {% set currentDate = date|date_modify("-#{i} month") %}
+            {% for i in 0..7 %}
+                {% set currentDate = date %}
                 <tr>
                     <td>{{ currentDate|date('Y-m') }}</td>
                     <td>
