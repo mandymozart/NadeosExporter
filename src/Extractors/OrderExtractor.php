@@ -149,6 +149,7 @@ class OrderExtractor extends AbstractExtractor
         $customer = $order->getOrderCustomer();
         $referencedDocument = $document->getReferencedDocument();
 
+        // This part is crazy, and potentially redundant with OSS
         if ($shippingAddressCountry) {
             $customerCountry = $shippingAddressCountry->getIso();
             $customerCountryIsEuCountry = in_array($shippingAddressCountry->getId(), $this->euCountryIds);
