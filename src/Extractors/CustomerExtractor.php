@@ -67,7 +67,7 @@ class CustomerExtractor extends AbstractExtractor
             'Kurzname'	    => $datas['customer.name'],
             'Vorname'	    => $datas['customer.firstName'],
             'Strasse' 	    => $datas['orderCustomerAddress.street'],
-            'PLZ'		    => "'" . $datas['orderCustomerAddress.zipCode'],
+            'PLZ'		    => '"' . $datas['orderCustomerAddress.zipCode'] . '"',
             'Land'		    => $datas['orderCustomerAddress.country'],
             'UID-Nummer'    => str_replace(' ', '', (string) $datas['customer.companyVatId']),
         ];
