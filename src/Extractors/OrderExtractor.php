@@ -27,7 +27,8 @@ use Psr\Log\LoggerInterface;
 4014    Erlöse Dänemark         25% EU-OSS   25,00
 4015    Erlöse Malta            18% EU-OSS   18,00
 4016    Erlöse Tschechien       21% EU-OSS   21,00
-4018    Erlöse Slowakei         20% EU-OSS   20,00
+4017    Erlöse Finnland         25,5% EU-OSS 25,50
+4018    Erlöse Slowakei         20% EU-OSS   23,00
 4031	Erlöse Deutschland          EU-OSS	  7,00
 4050	Erlöse (Ausfuhrlief.)    0% 	      0,00
 4100	Erlöse ig. Lieferungen (steuerfrei)	  0,00
@@ -55,7 +56,8 @@ class OrderExtractor extends AbstractExtractor
         'DK' => ['4014', 25], // Denmark
         'MT' => ['4015', 18], // Malta
         'CZ' => ['4016', 21], // Czechia 
-        'SK' => ['4018', 20], // Slovakia
+        'FI' => ['4017', 25.5], // Finland
+        'SK' => ['4018', 23], // Slovakia
     ];
     const TAX_DETAILS_TAXCODE = '1';
 
