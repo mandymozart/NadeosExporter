@@ -22,7 +22,7 @@
         <form onSubmit="" class="commissions-form" data-nadeos-exporter-controller="commissions-form">
             <input type="hidden" name="token" value="{{ token }}">
             <select class="form-select" name="year" id="year">
-                {% for year in 2020..2025 %}
+                {% for year in 2020..2027 %}
                     <option value="{{ year }}" {% if year == collection|first.orderYear %}selected{% endif %}>{{ year }}</option>
                 {% endfor %}
             </select>
