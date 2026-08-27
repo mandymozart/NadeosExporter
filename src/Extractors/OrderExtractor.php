@@ -102,13 +102,17 @@ class OrderExtractor extends AbstractExtractor
                 'document_order_id'         => $document->getOrderId(),
                 'document_order_version_id' => $document->getOrderVersionId(),
                 'order_version_id'          => $order->getVersionId(),
-                'order_amount_total'        => $order->getAmountTotal(),
-                'order_amount_net'          => $order->getAmountNet(),
-                'document_config'           => $document->getConfig(),
-                'referenced_document_id'    => $document->getReferencedDocumentId(),
+                'order_amount_total'         => $order->getAmountTotal(),
+                'order_amount_net'           => $order->getAmountNet(),
+                'order_position_price'       => $order->getPositionPrice(),
+                'order_price_total'          => $order->getPrice()?->getTotalPrice(),
+                'order_price_net'            => $order->getPrice()?->getNetPrice(),
+                'order_price_taxes'          => $order->getPrice()?->getCalculatedTaxes()?->getAmount(),
+                'order_shipping_costs_total' => $order->getShippingCosts()?->getTotalPrice(),
+                'document_config'            => $document->getConfig(),
+                'referenced_document_id'     => $document->getReferencedDocumentId(),
             ]);
         }
-
 
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
@@ -147,27 +151,6 @@ class OrderExtractor extends AbstractExtractor
             $order->getAmountTotal() - $order->getAmountNet(),
             2
         ) * -1;
-
-        // DEBUG: Compare tax amount with line items calculation
-        $lineItemsTaxAmount = round(
-            $this->getLineItemsTotalNet($order) - $this->getLineItemsTotalGross($order),
-            2
-        ) * -1;
-        if ($taxAmount !== $lineItemsTaxAmount) {
-            $this->logger->warning('OrderExtractor Debug: Tax Amount Mismatch', [
-                'order_number' => $order->getOrderNumber(),
-                'amount_gross' => $order->getAmountTotal(),
-                'amount_net' => $order->getAmountNet(),
-                'account_counterpart' => $accountCounterpart,
-                'calculated_tax_amount' => abs($taxAmount),
-                'tax_code' => $taxCode,
-                'tax_amount' => abs($taxAmount),
-                'line_items_total_net' => $this->getLineItemsTotalNet($order),
-                'line_items_total_gross' => $this->getLineItemsTotalGross($order),
-                'line_items_tax_amount' => $lineItemsTaxAmount,
-                'tax_percentage' => $taxPercentage,
-            ]);
-        }
 
         $name = ($isCompany && false === empty($customer->getCompany()))
             ? $customer->getCompany()
