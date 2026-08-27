@@ -3,7 +3,10 @@
 namespace NadeosData\Extractors;
 
 use NadeosData\Extractors\AbstractExtractor;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
@@ -73,8 +76,11 @@ class OrderExtractor extends AbstractExtractor
     private array $euCountryIds = [];
     private LoggerInterface $logger;
 
-    public function __construct(private readonly SystemConfigService $config, LoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly SystemConfigService $config,
+        LoggerInterface $logger,
+        private readonly EntityRepository $orderRepository
+    ) {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
 
@@ -92,25 +98,20 @@ class OrderExtractor extends AbstractExtractor
 
         // DEBUG VERSION INVESTIGATION - remove after diagnosing wrong-sum-on-cancellation bug
         if ($order->getOrderNumber() === '60241') {
+            $documentVersionContext = Context::createDefaultContext()->createWithVersionId($document->getOrderVersionId());
+            $orderAtDocumentVersion = $this->orderRepository
+                ->search(new Criteria([$document->getOrderId()]), $documentVersionContext)
+                ->first();
+
             $this->logger->warning('OrderExtractor Debug: Version Investigation', [
-                'order_number'              => $order->getOrderNumber(),
-                'document_number'           => $document->getDocumentNumber(),
-                'document_type'             => $document->getDocumentType()->getTechnicalName(),
-                'document_id'               => $document->getId(),
-                'document_created_at'       => $document->getCreatedAt()?->format('Y-m-d H:i:s'),
-                'document_updated_at'       => $document->getUpdatedAt()?->format('Y-m-d H:i:s'),
-                'document_order_id'         => $document->getOrderId(),
-                'document_order_version_id' => $document->getOrderVersionId(),
-                'order_version_id'          => $order->getVersionId(),
-                'order_amount_total'         => $order->getAmountTotal(),
-                'order_amount_net'           => $order->getAmountNet(),
-                'order_position_price'       => $order->getPositionPrice(),
-                'order_price_total'          => $order->getPrice()?->getTotalPrice(),
-                'order_price_net'            => $order->getPrice()?->getNetPrice(),
-                'order_price_taxes'          => $order->getPrice()?->getCalculatedTaxes()?->getAmount(),
-                'order_shipping_costs_total' => $order->getShippingCosts()?->getTotalPrice(),
-                'document_config'            => $document->getConfig(),
-                'referenced_document_id'     => $document->getReferencedDocumentId(),
+                'order_number'                       => $order->getOrderNumber(),
+                'document_number'                    => $document->getDocumentNumber(),
+                'document_type'                       => $document->getDocumentType()->getTechnicalName(),
+                'document_order_version_id'          => $document->getOrderVersionId(),
+                'order_version_id_from_association'  => $order->getVersionId(),
+                'amount_total_from_association'      => $order->getAmountTotal(),
+                'amount_total_at_document_version'   => $orderAtDocumentVersion?->getAmountTotal(),
+                'price_total_at_document_version'    => $orderAtDocumentVersion?->getPrice()?->getTotalPrice(),
             ]);
         }
 
