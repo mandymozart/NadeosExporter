@@ -13,6 +13,7 @@
         <service id="NadeosData\Extractors\OrderExtractor">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
             <argument type="service" id="monolog.logger.nadeos_exporter" />
+            <argument type="service" id="order.repository" />
         </service>
 
         <service id="NadeosData\Services\BmdExportService">

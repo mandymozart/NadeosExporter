@@ -3,7 +3,10 @@
 namespace NadeosData\Extractors;
 
 use NadeosData\Extractors\AbstractExtractor;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Document\DocumentEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
@@ -73,8 +76,11 @@ class OrderExtractor extends AbstractExtractor
     private array $euCountryIds = [];
     private LoggerInterface $logger;
 
-    public function __construct(private readonly SystemConfigService $config, LoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly SystemConfigService $config,
+        LoggerInterface $logger,
+        private readonly EntityRepository $orderRepository
+    ) {
         $this->euCountryIds = $config->get('NadeosExporter.config.euCountries') ?? [];
         $this->logger = $logger;
 
@@ -82,76 +88,40 @@ class OrderExtractor extends AbstractExtractor
 
     protected function isValidEntity(Entity $entity): bool
     {
-        return $entity instanceof DocumentEntity; // OrderEntity;
+        return $entity instanceof DocumentEntity;
+    }
+
+    private function resolveOrderAtDocumentVersion(DocumentEntity $document): OrderEntity
+    {
+        $context = Context::createDefaultContext()->createWithVersionId($document->getOrderVersionId());
+
+        $criteria = (new Criteria([$document->getOrderId()]))
+            ->addAssociations([
+                'billingAddress',
+                'billingAddress.country',
+                'orderCustomer',
+                'lineItems',
+                'deliveries',
+                'deliveries.shippingOrderAddress',
+                'deliveries.shippingOrderAddress.country',
+            ]);
+
+        return $this->orderRepository->search($criteria, $context)->first();
     }
 
     private function extractEntityBeauty(Entity $entity): array
     {
         $document = $entity;
-        $order = $entity->getOrder();
-
-        // DEBUG LINE ITEM
-        // if ($order->getOrderNumber() === '54096') {
-        //     // Debug: Check if line items exist and their details
-        //     $lineItems = $order->getLineItems();
-        //     if ($lineItems) {
-        //         $totalLineNet = 0;
-        //         $totalLineGross = 0;
-
-        //         foreach ($lineItems as $lineItem) {
-        //             $type = $lineItem->getType();
-        //             $label = $lineItem->getLabel();
-        //             $quantity = $lineItem->getQuantity();
-        //             $unitPrice = $lineItem->getUnitPrice();
-        //             $totalPrice = $lineItem->getTotalPrice();
-
-        //             $lineDebug = [
-        //                 'type' => $type,
-        //                 'label' => $label,
-        //                 'quantity' => $quantity,
-        //                 'unit_price' => $unitPrice,
-        //                 'total_price' => $totalPrice
-        //             ];
-
-        //             if ($type === 'product') {
-        //                 $totalLineNet += $totalPrice;
-
-        //                 // Try to get tax info
-        //                 $price = $lineItem->getPrice();
-        //                 if ($price && $price->getTaxRules()) {
-        //                     $taxRules = $price->getTaxRules();
-        //                     if ($taxRules->count() > 0) {
-        //                         $taxRate = $taxRules->first()->getTaxRate();
-        //                         $lineGross = $totalPrice * (1 + ($taxRate / 100));
-        //                         $totalLineGross += $lineGross;
-        //                         $lineDebug['tax_rate'] = $taxRate;
-        //                         $lineDebug['line_gross'] = $lineGross;
-        //                     }
-        //                 }
-        //             }
-
-        //             $lineItemsDebug[] = $lineDebug;
-        //         }
-
-        //         // $this->logger->info('OrderExtractor Debug: Line Items Analysis', [
-        //         //     'line_items_count' => $lineItems->count(),
-        //         //     'calculated_net' => $totalLineNet,
-        //         //     'calculated_gross' => $totalLineGross,
-        //         //     'line_items' => $lineItemsDebug
-        //         // ]);
-        //     } else {
-        //         $this->logger->info('OrderExtractor Debug: No line items found', [
-        //             'order_number' => $order->getOrderNumber()
-        //         ]);
-        //     }
-
-        // }
+        // $document->getOrder() can resolve to the wrong order version (a known
+        // association bug when the order was corrected after the document was
+        // created), so the order is fetched explicitly at the document's own
+        // orderVersionId instead of trusting the association.
+        $order = $this->resolveOrderAtDocumentVersion($document);
 
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
         $address = $order->getBillingAddress();
         $customer = $order->getOrderCustomer();
-        $referencedDocument = $document->getReferencedDocument();
 
         // This part is crazy, and potentially redundant with OSS
         if ($shippingAddressCountry) {
@@ -185,31 +155,6 @@ class OrderExtractor extends AbstractExtractor
             2
         ) * -1;
 
-        // DEBUG: Compare tax amount with line items calculation
-        $lineItemsTaxAmount = round(
-            $this->getLineItemsTotalNet($order) - $this->getLineItemsTotalGross($order),
-            2
-        ) * -1;
-        if ($taxAmount !== $lineItemsTaxAmount) {
-            $this->logger->warning('OrderExtractor Debug: Tax Amount Mismatch', [
-                'order_number' => $order->getOrderNumber(),
-                'amount_gross' => $order->getAmountTotal(),
-                'amount_net' => $order->getAmountNet(),
-                'account_counterpart' => $accountCounterpart,
-                'calculated_tax_amount' => abs($taxAmount),
-                'tax_code' => $taxCode,
-                'tax_amount' => abs($taxAmount),
-                'line_items_total_net' => $this->getLineItemsTotalNet($order),
-                'line_items_total_gross' => $this->getLineItemsTotalGross($order),
-                'line_items_tax_amount' => $lineItemsTaxAmount,
-                'tax_percentage' => $taxPercentage,
-            ]);
-        }
-
-        $name = ($isCompany && false === empty($customer->getCompany()))
-            ? $customer->getCompany()
-            : $customer->getLastname();
-
         $name = trim(implode(" ", [
             $address->getFirstname(),
             $address->getLastname()
@@ -222,9 +167,7 @@ class OrderExtractor extends AbstractExtractor
         return [
             'order.number' => $order->getOrderNumber(),
             'order.date' => $order->getOrderDate(),
-            // 'order.amountGross' => $this->getLineItemsTotalGross($order),
             'order.amountGross'             => $order->getAmountTotal(),
-            // 'order.amountNet' => $this->getLineItemsTotalNet($order),
             'order.amountNet'               => $order->getAmountNet(),
             'order.amountTax' => $taxAmount,
             'orderTax.accountCounterpart' => $accountCounterpart,
@@ -251,59 +194,6 @@ class OrderExtractor extends AbstractExtractor
             'referencedDocument.number' => $document->getReferencedDocument()?->getDocumentNumber(),
             'referencedDocument.date' => $document->getReferencedDocument()?->getCreatedAt(),
         ];
-    }
-
-    // Calculate total net of product line items
-    // TODO: add tax rules by country and client type (b2b or b2c)
-    protected function getLineItemsTotalNet(OrderEntity $order): float
-    {
-        $lineItems = $order->getLineItems();
-        $totalNet = 0;
-
-        foreach ($lineItems as $lineItem) {
-            $type = $lineItem->getType();
-            
-            if ($type === 'product') {
-                $totalNet += $lineItem->getTotalPrice();
-            }
-        }
-
-        return $totalNet;
-    }
-
-    // Calculate total gross of product line items
-    // TODO: add tax rules by country and client type (b2b or b2c)
-    protected function getLineItemsTotalGross(OrderEntity $order): float
-    {
-        $lineItems = $order->getLineItems();
-        $totalGross = 0;
-
-        foreach ($lineItems as $lineItem) {
-            $type = $lineItem->getType();
-            
-            if ($type === 'product') {
-                $totalPrice = $lineItem->getTotalPrice();
-                
-                // Try to get tax info
-                $price = $lineItem->getPrice();
-                if ($price && $price->getTaxRules()) {
-                    $taxRules = $price->getTaxRules();
-                    if ($taxRules->count() > 0) {
-                        $taxRate = $taxRules->first()->getTaxRate();
-                        $lineGross = $totalPrice * (1 + ($taxRate / 100));
-                        $totalGross += $lineGross;
-                    } else {
-                        // No tax rules, assume net = gross
-                        $totalGross += $totalPrice;
-                    }
-                } else {
-                    // No price info, assume net = gross
-                    $totalGross += $totalPrice;
-                }
-            }
-        }
-
-        return $totalGross;
     }
 
     protected function extractEntity(Entity $entity): array
