@@ -14,7 +14,7 @@
             <input type="hidden" name="token" value="{{ token }}">
             <div class="form-group">
             <select class="form-select" name="year" id="year">
-                {% for year in 2020..2025 %}
+                {% for year in 2020..2027 %}
                     <option value="{{ year }}" {% if year == articles|first.year %}selected{% endif %}>{{ year }}</option>
                 {% endfor %}
             </select>
