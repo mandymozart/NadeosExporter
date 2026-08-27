@@ -90,62 +90,25 @@ class OrderExtractor extends AbstractExtractor
         $document = $entity;
         $order = $entity->getOrder();
 
-        // DEBUG LINE ITEM
-        // if ($order->getOrderNumber() === '54096') {
-        //     // Debug: Check if line items exist and their details
-        //     $lineItems = $order->getLineItems();
-        //     if ($lineItems) {
-        //         $totalLineNet = 0;
-        //         $totalLineGross = 0;
+        // DEBUG VERSION INVESTIGATION - remove after diagnosing wrong-sum-on-cancellation bug
+        if ($order->getOrderNumber() === '60241') {
+            $this->logger->warning('OrderExtractor Debug: Version Investigation', [
+                'order_number'              => $order->getOrderNumber(),
+                'document_number'           => $document->getDocumentNumber(),
+                'document_type'             => $document->getDocumentType()->getTechnicalName(),
+                'document_id'               => $document->getId(),
+                'document_created_at'       => $document->getCreatedAt()?->format('Y-m-d H:i:s'),
+                'document_updated_at'       => $document->getUpdatedAt()?->format('Y-m-d H:i:s'),
+                'document_order_id'         => $document->getOrderId(),
+                'document_order_version_id' => $document->getOrderVersionId(),
+                'order_version_id'          => $order->getVersionId(),
+                'order_amount_total'        => $order->getAmountTotal(),
+                'order_amount_net'          => $order->getAmountNet(),
+                'document_config'           => $document->getConfig(),
+                'referenced_document_id'    => $document->getReferencedDocumentId(),
+            ]);
+        }
 
-        //         foreach ($lineItems as $lineItem) {
-        //             $type = $lineItem->getType();
-        //             $label = $lineItem->getLabel();
-        //             $quantity = $lineItem->getQuantity();
-        //             $unitPrice = $lineItem->getUnitPrice();
-        //             $totalPrice = $lineItem->getTotalPrice();
-
-        //             $lineDebug = [
-        //                 'type' => $type,
-        //                 'label' => $label,
-        //                 'quantity' => $quantity,
-        //                 'unit_price' => $unitPrice,
-        //                 'total_price' => $totalPrice
-        //             ];
-
-        //             if ($type === 'product') {
-        //                 $totalLineNet += $totalPrice;
-
-        //                 // Try to get tax info
-        //                 $price = $lineItem->getPrice();
-        //                 if ($price && $price->getTaxRules()) {
-        //                     $taxRules = $price->getTaxRules();
-        //                     if ($taxRules->count() > 0) {
-        //                         $taxRate = $taxRules->first()->getTaxRate();
-        //                         $lineGross = $totalPrice * (1 + ($taxRate / 100));
-        //                         $totalLineGross += $lineGross;
-        //                         $lineDebug['tax_rate'] = $taxRate;
-        //                         $lineDebug['line_gross'] = $lineGross;
-        //                     }
-        //                 }
-        //             }
-
-        //             $lineItemsDebug[] = $lineDebug;
-        //         }
-
-        //         // $this->logger->info('OrderExtractor Debug: Line Items Analysis', [
-        //         //     'line_items_count' => $lineItems->count(),
-        //         //     'calculated_net' => $totalLineNet,
-        //         //     'calculated_gross' => $totalLineGross,
-        //         //     'line_items' => $lineItemsDebug
-        //         // ]);
-        //     } else {
-        //         $this->logger->info('OrderExtractor Debug: No line items found', [
-        //             'order_number' => $order->getOrderNumber()
-        //         ]);
-        //     }
-
-        // }
 
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
