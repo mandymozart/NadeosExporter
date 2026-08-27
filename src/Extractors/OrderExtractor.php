@@ -88,38 +88,40 @@ class OrderExtractor extends AbstractExtractor
 
     protected function isValidEntity(Entity $entity): bool
     {
-        return $entity instanceof DocumentEntity; // OrderEntity;
+        return $entity instanceof DocumentEntity;
+    }
+
+    private function resolveOrderAtDocumentVersion(DocumentEntity $document): OrderEntity
+    {
+        $context = Context::createDefaultContext()->createWithVersionId($document->getOrderVersionId());
+
+        $criteria = (new Criteria([$document->getOrderId()]))
+            ->addAssociations([
+                'billingAddress',
+                'billingAddress.country',
+                'orderCustomer',
+                'lineItems',
+                'deliveries',
+                'deliveries.shippingOrderAddress',
+                'deliveries.shippingOrderAddress.country',
+            ]);
+
+        return $this->orderRepository->search($criteria, $context)->first();
     }
 
     private function extractEntityBeauty(Entity $entity): array
     {
         $document = $entity;
-        $order = $entity->getOrder();
-
-        // DEBUG VERSION INVESTIGATION - remove after diagnosing wrong-sum-on-cancellation bug
-        if ($order->getOrderNumber() === '60241') {
-            $documentVersionContext = Context::createDefaultContext()->createWithVersionId($document->getOrderVersionId());
-            $orderAtDocumentVersion = $this->orderRepository
-                ->search(new Criteria([$document->getOrderId()]), $documentVersionContext)
-                ->first();
-
-            $this->logger->warning('OrderExtractor Debug: Version Investigation', [
-                'order_number'                       => $order->getOrderNumber(),
-                'document_number'                    => $document->getDocumentNumber(),
-                'document_type'                       => $document->getDocumentType()->getTechnicalName(),
-                'document_order_version_id'          => $document->getOrderVersionId(),
-                'order_version_id_from_association'  => $order->getVersionId(),
-                'amount_total_from_association'      => $order->getAmountTotal(),
-                'amount_total_at_document_version'   => $orderAtDocumentVersion?->getAmountTotal(),
-                'price_total_at_document_version'    => $orderAtDocumentVersion?->getPrice()?->getTotalPrice(),
-            ]);
-        }
+        // $document->getOrder() can resolve to the wrong order version (a known
+        // association bug when the order was corrected after the document was
+        // created), so the order is fetched explicitly at the document's own
+        // orderVersionId instead of trusting the association.
+        $order = $this->resolveOrderAtDocumentVersion($document);
 
         $shippingAddressCountry = $order->getDeliveries()?->getShippingAddress()?->getCountries()?->first() ?? null;
 
         $address = $order->getBillingAddress();
         $customer = $order->getOrderCustomer();
-        $referencedDocument = $document->getReferencedDocument();
 
         // This part is crazy, and potentially redundant with OSS
         if ($shippingAddressCountry) {
@@ -153,10 +155,6 @@ class OrderExtractor extends AbstractExtractor
             2
         ) * -1;
 
-        $name = ($isCompany && false === empty($customer->getCompany()))
-            ? $customer->getCompany()
-            : $customer->getLastname();
-
         $name = trim(implode(" ", [
             $address->getFirstname(),
             $address->getLastname()
@@ -169,9 +167,7 @@ class OrderExtractor extends AbstractExtractor
         return [
             'order.number' => $order->getOrderNumber(),
             'order.date' => $order->getOrderDate(),
-            // 'order.amountGross' => $this->getLineItemsTotalGross($order),
             'order.amountGross'             => $order->getAmountTotal(),
-            // 'order.amountNet' => $this->getLineItemsTotalNet($order),
             'order.amountNet'               => $order->getAmountNet(),
             'order.amountTax' => $taxAmount,
             'orderTax.accountCounterpart' => $accountCounterpart,
@@ -198,59 +194,6 @@ class OrderExtractor extends AbstractExtractor
             'referencedDocument.number' => $document->getReferencedDocument()?->getDocumentNumber(),
             'referencedDocument.date' => $document->getReferencedDocument()?->getCreatedAt(),
         ];
-    }
-
-    // Calculate total net of product line items
-    // TODO: add tax rules by country and client type (b2b or b2c)
-    protected function getLineItemsTotalNet(OrderEntity $order): float
-    {
-        $lineItems = $order->getLineItems();
-        $totalNet = 0;
-
-        foreach ($lineItems as $lineItem) {
-            $type = $lineItem->getType();
-            
-            if ($type === 'product') {
-                $totalNet += $lineItem->getTotalPrice();
-            }
-        }
-
-        return $totalNet;
-    }
-
-    // Calculate total gross of product line items
-    // TODO: add tax rules by country and client type (b2b or b2c)
-    protected function getLineItemsTotalGross(OrderEntity $order): float
-    {
-        $lineItems = $order->getLineItems();
-        $totalGross = 0;
-
-        foreach ($lineItems as $lineItem) {
-            $type = $lineItem->getType();
-            
-            if ($type === 'product') {
-                $totalPrice = $lineItem->getTotalPrice();
-                
-                // Try to get tax info
-                $price = $lineItem->getPrice();
-                if ($price && $price->getTaxRules()) {
-                    $taxRules = $price->getTaxRules();
-                    if ($taxRules->count() > 0) {
-                        $taxRate = $taxRules->first()->getTaxRate();
-                        $lineGross = $totalPrice * (1 + ($taxRate / 100));
-                        $totalGross += $lineGross;
-                    } else {
-                        // No tax rules, assume net = gross
-                        $totalGross += $totalPrice;
-                    }
-                } else {
-                    // No price info, assume net = gross
-                    $totalGross += $totalPrice;
-                }
-            }
-        }
-
-        return $totalGross;
     }
 
     protected function extractEntity(Entity $entity): array
